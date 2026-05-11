@@ -1,11 +1,13 @@
 ---
 name: create-pr
-description: Open a pull request that matches the host repo's existing style. Use when the user says "create a PR" or "open a PR" and there is a non-empty branch ahead of the base. Inspects recent merged PRs to learn the project's title prefix, body structure, and detail level, then drafts a faithful PR body and pushes the branch.
+description: Open a pull request that matches the host repo's existing style. Use when the user says "create a PR" or "open a PR" and there is a non-empty branch ahead of the base. Inspects recent merged PRs to learn the project's title prefix, body structure, and detail level, then drafts a faithful PR body and pushes the branch. Optional argument `draft` opens a draft PR instead.
 ---
 
 Open a pull request for the current branch that **matches the host repository's existing PR style** — title prefix, body section order, level of detail, formatting. Do not invent a generic template.
 
 The user invokes this when their branch is ready to ship. Read the codebase first; do not assume any specific convention.
+
+`ARGUMENTS` is optional. The only accepted value is the literal `draft` (case-insensitive); anything else is an error — surface it and stop. When `draft` is passed, open the PR as a draft via `gh pr create --draft`.
 
 ## Step 1 — Inspect repo state
 
@@ -48,8 +50,8 @@ If the branch addresses a GitHub issue, link it. Use `Addresses #N` (or whatever
 ## Step 4 — Push and open
 
 - If no upstream, push with `-u`. Otherwise plain `git push`.
-- Run `gh pr create --title "..." --body "$(cat <<'EOF' ... EOF)"` to preserve markdown formatting via heredoc.
-- Return the PR URL on its own line so the user can click it.
+- Run `gh pr create --title "..." --body "$(cat <<'EOF' ... EOF)"` to preserve markdown formatting via heredoc. Add `--draft` when `ARGUMENTS` is `draft`.
+- Return the PR URL on its own line so the user can click it. If it was opened as a draft, prefix the URL with `Draft PR: ` so it's obvious from the output.
 
 ## Guardrails
 
