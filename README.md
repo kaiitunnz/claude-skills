@@ -1,6 +1,8 @@
 # claude-skills
 
-A small collection of [Claude Code skills](https://docs.claude.com/en/docs/claude-code/skills) for everyday git, PR, and review workflows. Each skill is a single `SKILL.md` with a YAML frontmatter (`name`, `description`) and a step-by-step procedure Claude follows when invoked.
+A small collection of portable **agent skills** for everyday git, PR, and review workflows. Each skill is a single `SKILL.md` with YAML frontmatter (`name`, `description`) and a step-by-step procedure the agent follows when the skill is invoked.
+
+The format follows the emerging cross-agent convention also used by [`AGENTS.md`](https://agents.md): a plain markdown file with a short frontmatter header and natural-language instructions. Skills here have been tested with **Claude Code**, but the contents are agent-neutral — Codex, OpenCode, Cursor, Aider, and other agents that load markdown instructions / custom commands / prompt libraries can use the same files (sometimes with a thin per-agent loader).
 
 ## Skills
 
@@ -8,7 +10,7 @@ A small collection of [Claude Code skills](https://docs.claude.com/en/docs/claud
 | --- | --- |
 | [`make-commits`](make-commits/SKILL.md) | Split staged + unstaged changes into logical commits matching the repo's existing style. Verifies author, honors DCO signoff, pauses on non-trivial pre-commit failures. |
 | [`create-pr`](create-pr/SKILL.md) | Open a PR that mirrors the host repo's title prefix, body structure, and detail level by inspecting recent merged PRs. Supports `draft`. |
-| [`rebase-main`](rebase-main/SKILL.md) | Rebase current branch onto the latest base, auto-resolve trivial plumbing conflicts (lockfiles, generated files), surface real semantic conflicts, re-run verify. |
+| [`rebase-main`](rebase-main/SKILL.md) | Rebase the current branch onto the latest base, auto-resolve trivial plumbing conflicts (lockfiles, generated files), surface real semantic conflicts, re-run verify. |
 | [`address-ci-failures`](address-ci-failures/SKILL.md) | Pull failing CI logs (`gh pr checks` / `gh run view`), classify failures (lint / type / test / build / infra-flake), reproduce locally, fix in batch. Leaves changes staged for `make-commits`. |
 | [`address-review`](address-review/SKILL.md) | Work through reviewer feedback systematically — accept or push back per finding with reasoning, implement accepted ones, draft a per-finding reply. |
 | [`review-diff`](review-diff/SKILL.md) | Critical review of a local diff (staged / unstaged / `<target> [<base>]` range). Focuses on correctness, style, and other concrete issues; ends with a ship/iterate verdict. |
@@ -17,32 +19,34 @@ A small collection of [Claude Code skills](https://docs.claude.com/en/docs/claud
 
 ## Typical flows
 
-- **Commit → PR:** `/make-commits` → `/create-pr`
-- **CI red on a PR:** `/address-ci-failures` → `/make-commits`
-- **Reviewer left comments:** `/address-review` → `/make-commits`
-- **Behind on main:** `/rebase-main`
-- **Self-review before pushing:** `/review-diff` (worktree) or `/review-pr` (after push)
+- **Commit → PR:** `make-commits` → `create-pr`
+- **CI red on a PR:** `address-ci-failures` → `make-commits`
+- **Reviewer left comments:** `address-review` → `make-commits`
+- **Behind on main:** `rebase-main`
+- **Self-review before pushing:** `review-diff` (worktree) or `review-pr` (after push)
 
 ## Install
 
-Skills are discovered from `~/.claude/skills/` (user-scope) or `.claude/skills/` (project-scope). Either symlink or copy individual skill directories:
+The right install path depends on your agent — each one looks in a different place for custom skills / commands / prompts. Common patterns:
 
 ```bash
-# User-scope (available in every project)
-mkdir -p ~/.claude/skills
+# Claude Code — user scope (every project) or project scope
 ln -s "$PWD"/make-commits ~/.claude/skills/make-commits
-
-# Or project-scope (only this repo)
-mkdir -p .claude/skills
 ln -s "$PWD"/make-commits .claude/skills/make-commits
+
+# Codex, OpenCode, and other agents following the AGENTS.md convention
+ln -s "$PWD"/make-commits ~/.agents/skills/make-commits        # user scope
+ln -s "$PWD"/make-commits .agents/skills/make-commits          # project scope
 ```
 
-Invoke from Claude Code via `/<skill-name>` (e.g. `/make-commits`), or just describe the task in plain language — Claude will match against each skill's `description`.
+Once installed, invoke either by slash command (`/<skill-name>`) on agents that support it, or by describing the task in plain language — agents will match against each skill's `description` field.
+
+Skills are intentionally written as **prose procedures**, not code — they describe what the agent should read, decide, and do, in the order it should do them. That makes them portable across agents and easy to adapt: fork a `SKILL.md`, tweak the steps, drop it into your own workflow.
 
 ## Conventions across skills
 
 - **Read before acting.** Every skill starts by surveying repo state (`git status`, recent commits, project conventions in `AGENTS.md` / `CLAUDE.md` / `CONTRIBUTING.md`).
-- **Stage, don't commit.** `address-ci-failures` and `address-review` leave changes in the worktree and hand off to `/make-commits`.
+- **Stage, don't commit.** `address-ci-failures` and `address-review` leave changes in the worktree and hand off to `make-commits`.
 - **Render, don't post.** `address-review` drafts replies in chat; the user posts them.
 - **Surface, don't bypass.** No `--no-verify`, no auto-`--amend`, no auto-stash, no `--force` without `--with-lease`. When a step is ambiguous, the skill stops and asks.
 - **No invented findings.** Reviews are short when the diff is clean; audits are silent when memory is healthy.
