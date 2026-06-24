@@ -79,7 +79,20 @@ While reading, look for:
 
 Be **critical and direct**. Surface real issues plainly without softening. Do not pad the list with stylistic nitpicks just to have findings. If the diff is clean, say so.
 
-## Step 4 — Report
+## Step 4 — Verify each finding before reporting
+
+Treat every candidate finding as a hypothesis, not a fact. Before it earns a place in the report, confirm it against the actual code — a grep hit or a diff hunk is a *lead*, not proof.
+
+For each candidate:
+
+- **Read the real source, not just the diff.** Open the changed file and its surrounding context with the Read tool. Many "bugs" evaporate once you see the lines the diff didn't show (an early return above, a guard below, a default set elsewhere).
+- **Trace the call sites — read them, don't just grep.** For a signature change, renamed symbol, changed return type, or any contract change, use grep to *locate* callers, then **read each one** and confirm it is genuinely broken — not already updated in this change, not guarded, not unreachable. A grep count is not a finding.
+- **Double-check every condition for inversion.** Before reporting a boolean/condition bug, walk the true and false branches explicitly and confirm the polarity is actually wrong. Inverted comparisons, `!`-flipped guards, swapped early-returns, De Morgan rewrites — these are exactly where a fast read misfires. Re-read the condition and state what the correct logic would be; if it's actually correct, drop the finding.
+- **Confirm the failing path is reachable.** An edge case sitting behind a guard the diff also adds is not a bug.
+
+Drop any finding that doesn't survive this check. A surviving finding must cite the concrete evidence — the `path:line`, the caller you read, the branch you traced — so the user can confirm it the same way. If you're still unsure after verifying, report it as a question, not a defect.
+
+## Step 5 — Report
 
 Output in this exact structure:
 
@@ -114,4 +127,5 @@ Rules for the output:
 - **Do not commit, push, stage, or modify code.** This skill is read-only.
 - **Do not run the project's test suite** unless the user explicitly asks — reviews are about reading, not running.
 - **Do not invent findings.** A short review with two real issues is better than a long review with eight invented ones.
+- **Verify before reporting.** Every finding is confirmed against the actual source and its call sites (read them, don't just grep), and every condition is checked for inversion. Unverified suspicions are dropped, not reported — or downgraded to an explicit question.
 - **Do not switch branches or check anything out.** Range mode reviews the diff between two revisions without altering the working tree.
