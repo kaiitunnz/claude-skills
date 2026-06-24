@@ -16,6 +16,7 @@ The format follows the emerging cross-agent convention also used by [`AGENTS.md`
 | [`review-diff`](review-diff/SKILL.md) | Critical review of a local diff (staged / unstaged / `<target> [<base>]` range). Focuses on correctness, style, and other concrete issues; ends with a ship/iterate verdict. |
 | [`review-pr`](review-pr/SKILL.md) | Critical review of a PR (number, URL, or current branch). Checks out the PR locally, reads description or infers intent, ends with a merge verdict. |
 | [`memory-audit`](memory-audit/SKILL.md) | Audit the shared cross-workspace memory store for stale, duplicate, and contradicting entries. Drafts specific edits and asks for batch approval before applying. |
+| [`ship`](ship/SKILL.md) | End-to-end release: verify (pre-commit + tests) → commit → push → open PR → critical self-review → address findings. Orchestrates the other skills when installed, falls back to inline otherwise. Supports `draft`. |
 
 ## Typical flows
 
@@ -24,6 +25,7 @@ The format follows the emerging cross-agent convention also used by [`AGENTS.md`
 - **Reviewer left comments:** `address-review` → `make-commits`
 - **Behind on main:** `rebase-main`
 - **Self-review before pushing:** `review-diff` (worktree) or `review-pr` (after push)
+- **Whole branch out the door:** `ship` (runs the verify → commit → push → PR → self-review chain end to end)
 
 ## Install
 
