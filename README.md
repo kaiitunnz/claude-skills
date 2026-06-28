@@ -1,6 +1,6 @@
 # claude-skills
 
-A small collection of portable **agent skills** for everyday git, PR, and review workflows. Each skill is a single `SKILL.md` with YAML frontmatter (`name`, `description`) and a step-by-step procedure the agent follows when the skill is invoked.
+A small collection of portable **agent skills** for everyday development workflows — project setup, git, PR, and review. Each skill is a `SKILL.md` with YAML frontmatter (`name`, `description`) and a step-by-step procedure the agent follows when the skill is invoked; larger skills add a `references/` directory that the `SKILL.md` routes to for detail.
 
 The format follows the emerging cross-agent convention also used by [`AGENTS.md`](https://agents.md): a plain markdown file with a short frontmatter header and natural-language instructions. Skills here have been tested with **Claude Code**, but the contents are agent-neutral — Codex, OpenCode, Cursor, Aider, and other agents that load markdown instructions / custom commands / prompt libraries can use the same files (sometimes with a thin per-agent loader).
 
@@ -8,6 +8,7 @@ The format follows the emerging cross-agent convention also used by [`AGENTS.md`
 
 | Skill | Purpose |
 | --- | --- |
+| [`init-python-project`](init-python-project/SKILL.md) | Scaffold a new Python project — or align an existing one — onto a uv + src-layout + pre-commit + pytest baseline, surfacing the few real choices (workspace, version source, async, CLI, security tier) as decisions. |
 | [`make-commits`](make-commits/SKILL.md) | Split staged + unstaged changes into logical commits matching the repo's existing style. Verifies author, honors DCO signoff, pauses on non-trivial pre-commit failures. |
 | [`create-pr`](create-pr/SKILL.md) | Open a PR that mirrors the host repo's title prefix, body structure, and detail level by inspecting recent merged PRs. Supports `draft`. |
 | [`rebase-main`](rebase-main/SKILL.md) | Rebase the current branch onto the latest base, auto-resolve trivial plumbing conflicts (lockfiles, generated files), surface real semantic conflicts, re-run verify. |
@@ -20,6 +21,7 @@ The format follows the emerging cross-agent convention also used by [`AGENTS.md`
 
 ## Typical flows
 
+- **New project:** `init-python-project` (scaffold the baseline, then verify)
 - **Commit → PR:** `make-commits` → `create-pr`
 - **CI red on a PR:** `address-ci-failures` → `make-commits`
 - **Reviewer left comments:** `address-review` → `make-commits`
