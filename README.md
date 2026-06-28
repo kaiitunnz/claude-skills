@@ -14,6 +14,7 @@ The format follows the emerging cross-agent convention also used by [`AGENTS.md`
 | [`rebase-main`](rebase-main/SKILL.md) | Rebase the current branch onto the latest base, auto-resolve trivial plumbing conflicts (lockfiles, generated files), surface real semantic conflicts, re-run verify. |
 | [`address-ci-failures`](address-ci-failures/SKILL.md) | Pull failing CI logs (`gh pr checks` / `gh run view`), classify failures (lint / type / test / build / infra-flake), reproduce locally, fix in batch. Leaves changes staged for `make-commits`. |
 | [`address-review`](address-review/SKILL.md) | Work through reviewer feedback systematically — accept or push back per finding with reasoning, implement accepted ones, draft a per-finding reply. |
+| [`verify-python`](verify-python/SKILL.md) | Run a Python project's checks as a pre-push / pre-PR gate — formatting, lint, types, tests — via the repo's own command (pre-commit / ruff / mypy / pytest), reporting a green/red verdict. Surfaces failures; doesn't fix. |
 | [`review-diff`](review-diff/SKILL.md) | Critical review of a local diff (staged / unstaged / `<target> [<base>]` range). Focuses on correctness, style, and other concrete issues; ends with a ship/iterate verdict. |
 | [`review-pr`](review-pr/SKILL.md) | Critical review of a PR (number, URL, or current branch). Checks out the PR locally, reads description or infers intent, ends with a merge verdict. |
 | [`memory-audit`](memory-audit/SKILL.md) | Audit the shared cross-workspace memory store for stale, duplicate, and contradicting entries. Drafts specific edits and asks for batch approval before applying. |
@@ -26,6 +27,7 @@ The format follows the emerging cross-agent convention also used by [`AGENTS.md`
 - **CI red on a PR:** `address-ci-failures` → `make-commits`
 - **Reviewer left comments:** `address-review` → `make-commits`
 - **Behind on main:** `rebase-main`
+- **Green before pushing:** `verify-python` (checks + tests) then `review-diff`
 - **Self-review before pushing:** `review-diff` (worktree) or `review-pr` (after push)
 - **Whole branch out the door:** `ship` (runs the verify → commit → push → PR → self-review chain end to end)
 
