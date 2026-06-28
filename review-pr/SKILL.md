@@ -96,17 +96,18 @@ Output in this exact structure:
     **Executive summary:** 1–3 sentences. State what the PR does and the headline reason for the verdict.
 
     ### Correctness
-    - <issue, with `path:line` citation>. *Recommended action:* <concrete fix>.
-    - …
+    1. <issue, with `path:line` citation>. *Recommended action:* <concrete fix>.
+    2. …
 
     ### Coding style
-    - …
+    3. …
 
     ### Others
-    - …
+    4. …
 
 Rules for the output:
 
+- **Number findings continuously across all three sections** (1, 2, 3, …) — do not restart at 1 in each section — so any finding has a unique number to reference later ("issue 3"). When a section starts mid-count, begin its ordered list at the next number; the markdown renderer honors the starting ordinal.
 - Cite `path:line` for every finding so the author can jump to it.
 - Each item ends with a one-sentence "Recommended action" the author (or you, on a follow-up) can act on.
 - Omit a section entirely if it has zero findings — do not write "no issues" inside a section. If all three are empty, state that directly under the summary and skip the headers.
