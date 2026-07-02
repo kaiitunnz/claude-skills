@@ -34,7 +34,7 @@ Bound the fix→re-verify loop sensibly (a few rounds); if checks stay red for a
 
 ## Step 4 — Ship
 
-Run `/ship` (passing `draft` through when given). It drives verify → commit → push → open PR → self-review → address findings.
+Run `/ship` (passing `draft` through when given). It drives verify → commit → push → open PR → revise (self-review → address findings → final verify, via `/loop-revise`).
 
 **Adjust the final deliverable to fit the work** — this is the one judgment call the skill makes autonomously:
 
@@ -52,7 +52,7 @@ End with a compact summary: the plan path, the branch, what was implemented, the
 ## Guardrails
 
 - **Autonomous, halt on breakage.** No per-step confirmation; stop and surface any failure, unresolved ambiguity, or scope creep.
-- **Delegate, don't re-implement.** `/loop-plan`, `/waypoint-workqueue`, `/make-commits`, `/verify-python`, `/ship` are authoritative for their steps.
+- **Delegate, don't re-implement.** `/loop-plan`, `/waypoint-workqueue`, `/make-commits`, `/verify-python`, `/ship` (which itself delegates the revision phase to `/loop-revise`) are authoritative for their steps.
 - **Green before ship.** Code reaches `/ship` only with passing checks.
 - **Never build on the default branch.**
 - **Right-size the endpoint.** PR vs. local branch vs. leave-as-is follows the work, not a fixed default.

@@ -3,7 +3,7 @@ name: ship
 description: Take a finished branch all the way out — verify (pre-commit + full tests), commit, push, open a PR, then critically self-review and address every finding before reporting done. Orchestrates the other git/PR/review skills when they're installed and falls back to doing each step inline when they aren't. Optional argument `draft` opens the PR as a draft. Use when the user says "ship it", "/ship", or "take this to a PR".
 ---
 
-Drive a ready branch through the whole release path: **verify → commit → push → open PR → self-review → address findings → done**. This is an orchestrator. Each step has a dedicated skill; when that skill is installed, invoke it and treat it as authoritative for its step. When it isn't, do the step inline following the principles named here. Never duplicate a delegated skill's work — call it, read its output, move on.
+Drive a ready branch through the whole release path: **verify → commit → push → open PR → revise (self-review + address findings + final verify) → done**. This is an orchestrator. Each step has a dedicated skill; when that skill is installed, invoke it and treat it as authoritative for its step. When it isn't, do the step inline following the principles named here. Never duplicate a delegated skill's work — call it, read its output, move on.
 
 `ARGUMENTS` is optional. The only accepted value is the literal `draft` (case-insensitive), which is passed through to PR creation. Anything else is an error — surface it and stop.
 
@@ -64,33 +64,13 @@ If `/make-commits` pauses (author mismatch, pre-commit hook failure, ambiguous g
 
 Capture the PR URL — the self-review and final report need it.
 
-## Step 6 — Critical self-review
+## Step 6 — Revise (self-review → address → verify)
 
-Review what you just shipped, **critically and with fresh eyes**. The goal is to catch what the author (you) is biased not to see.
+Run `/loop-revise` on the open PR (pass the PR number/URL from step 5). It reviews what you just shipped with fresh eyes, drives every finding to resolution — re-verifying, committing, and pushing each round, looping until the review converges — and closes with a final full-verify gate. Read its report: the final verdict, the findings addressed/pushed back, and the final verify result feed step 7.
 
-- **Prefer a subagent.** If your harness can spawn a sub-agent with its own context, delegate the review to one so it reads the diff cold rather than reusing your justifications. Instruct it to run `/review-pr <N>` (or `/review-diff` if the PR isn't reviewable yet) and return the structured verdict + findings. If no subagent capability exists, do the review inline.
-- Use `/review-pr` (PR is open) when available; fall back to `/review-diff <branch> <base>` for a local range review. If neither skill is installed, review inline against correctness, project coding conventions, and other concrete issues — no padding, no invented findings.
+If `/loop-revise` isn't installed, do its work inline following the principles it names: critically self-review (prefer a cold-context subagent running `/review-pr`, else `/review-diff <branch> <base>`, else inline); address findings with `/address-review` (fix what's right, push back with reasoning on what isn't, don't widen scope); re-verify, commit, and push each round; then run a final full verify as a hard gate before continuing. Loop until the review converges (no material findings, or two rounds surface nothing new) rather than to a fixed round count, and surface thrashing.
 
-Capture the verdict and the per-finding list verbatim.
-
-## Step 7 — Address findings (loop)
-
-If the review verdict is **clean** ("Ready to merge" / "Looks good") with no actionable findings, skip to step 8.
-
-Otherwise, work the findings:
-
-- If `/address-review` is available, **invoke it** with the review text. It evaluates each finding (accept / push back / clarify with reasoning), implements the accepted ones, and leaves changes staged. Honor its push-backs — a finding you genuinely disagree with stays unaddressed, with the reasoning recorded.
-- Otherwise address them inline with the same discipline: fix what's genuinely right, push back with reasoning on what isn't, don't widen scope.
-
-After changes are made:
-
-1. **Re-verify** the affected scope (at minimum the relevant tests/lint; the full suite if changes were broad). Same hard gate as step 2.
-2. **Commit** the fixes (step 3's path) and **push** (step 4's path) — this updates the open PR.
-3. **Re-review** once more (step 6) to confirm the findings are resolved and nothing regressed.
-
-Bound the loop to **at most 2 address→re-review rounds**. If the review still reports blocking findings after that, **stop and surface them** — don't loop indefinitely or quietly downgrade them. Genuine disagreements (push-backs) don't count as unresolved; record them and move on.
-
-## Step 8 — Final report
+## Step 7 — Final report
 
 End with a compact pipeline summary:
 
@@ -106,7 +86,7 @@ If anything stopped the pipeline early, report where and why instead — what pa
 
 ## Guardrails
 
-- **Don't ship broken code.** A failed verify (step 2 or step 7) halts the pipeline. No `--no-verify`, no skipping an existing test suite.
+- **Don't ship broken code.** A failed verify — the main gate (step 2) or the revise phase's re-verify and final gate (step 6, via `/loop-revise`) — halts the pipeline. No `--no-verify`, no skipping an existing test suite.
 - **Don't push to the default branch.** `/ship` always works on a feature branch.
 - **Don't force-push without asking**, and never bare `--force` — `--force-with-lease` only, after confirmation.
 - **Don't duplicate a PR.** Reuse the existing open PR for the branch.
