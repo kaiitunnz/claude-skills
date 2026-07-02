@@ -18,7 +18,8 @@ The format follows the emerging cross-agent convention also used by [`AGENTS.md`
 | [`review-diff`](review-diff/SKILL.md) | Critical review of a local diff (staged / unstaged / `<target> [<base>]` range). Focuses on correctness, style, and other concrete issues; ends with a ship/iterate verdict. |
 | [`review-pr`](review-pr/SKILL.md) | Critical review of a PR (number, URL, or current branch). Checks out the PR locally, reads description or infers intent, ends with a merge verdict. |
 | [`memory-audit`](memory-audit/SKILL.md) | Audit the shared cross-workspace memory store for stale, duplicate, and contradicting entries. Drafts specific edits and asks for batch approval before applying. |
-| [`ship`](ship/SKILL.md) | End-to-end release: verify (pre-commit + tests) → commit → push → open PR → critical self-review → address findings. Orchestrates the other skills when installed, falls back to inline otherwise. Supports `draft`. |
+| [`ship`](ship/SKILL.md) | End-to-end release: verify (pre-commit + tests) → commit → push → open PR → revise (self-review + address findings + final verify, via `loop-revise`). Orchestrates the other skills when installed, falls back to inline otherwise. Supports `draft`. |
+| [`loop-revise`](loop-revise/SKILL.md) | Critical self-review → address findings → re-review loop (runs to convergence like `loop-plan`), capped with a final full-verify gate. Targets an open PR or a local diff; the revision phase of `ship`, usable standalone. |
 | [`loop-plan`](loop-plan/SKILL.md) | Iterate a request into a converged, written plan via a fresh-context review→revise loop (runs until reviews stop finding material issues). Any request type; autonomous, no plan mode, no approval gate. |
 | [`loop-dev`](loop-dev/SKILL.md) | Full autonomous dev loop: `loop-plan` → branch → implement (with `make-commits`) → verify to green → `ship`. Branches on code vs. document deliverable; right-sizes the endpoint (PR / local branch / leave-as-is). |
 
@@ -31,7 +32,7 @@ The format follows the emerging cross-agent convention also used by [`AGENTS.md`
 - **Behind on main:** `rebase-main`
 - **Green before pushing:** `verify-impl` (checks + tests) then `review-diff`
 - **Self-review before pushing:** `review-diff` (worktree) or `review-pr` (after push)
-- **Whole branch out the door:** `ship` (runs the verify → commit → push → PR → self-review chain end to end)
+- **Whole branch out the door:** `ship` (runs the verify → commit → push → PR → `loop-revise` chain end to end)
 - **Request → shipped, hands-off:** `loop-dev` (plans via `loop-plan`, then branch → implement → verify → `ship`)
 
 ## Install
