@@ -27,7 +27,7 @@ Commit **along the way** with `/make-commits` at each logical unit — don't acc
 
 Then loop by deliverable type:
 
-- **Code:** after each meaningful chunk, run `/verify-python` (or the repo's own verify command). On failure, fix and re-verify. Repeat until green. Reaching step 4 with red checks is not allowed.
+- **Code:** after each meaningful chunk, run `/verify-impl` (or the repo's own verify command). On failure, fix and re-verify. Repeat until green. Reaching step 4 with red checks is not allowed.
 - **Document:** revise against the plan's review bar (spawn a fresh-context subagent to critique the draft, then revise). No test gate applies. **Git-tracked by default** — commit drafts with `/make-commits` like any other work. If the document location has no git repo initialized, adapt: keep the draft/revise loop, skip the commit and branch steps, and report the file path as the endpoint.
 
 Bound the fix→re-verify loop sensibly (a few rounds); if checks stay red for a reason you can't resolve, halt and surface the failure verbatim.
@@ -52,7 +52,7 @@ End with a compact summary: the plan path, the branch, what was implemented, the
 ## Guardrails
 
 - **Autonomous, halt on breakage.** No per-step confirmation; stop and surface any failure, unresolved ambiguity, or scope creep.
-- **Delegate, don't re-implement.** `/loop-plan`, `/waypoint-workqueue`, `/make-commits`, `/verify-python`, `/ship` (which itself delegates the revision phase to `/loop-revise`) are authoritative for their steps.
+- **Delegate, don't re-implement.** `/loop-plan`, `/waypoint-workqueue`, `/make-commits`, `/verify-impl`, `/ship` (which itself delegates the revision phase to `/loop-revise`) are authoritative for their steps.
 - **Green before ship.** Code reaches `/ship` only with passing checks.
 - **Never build on the default branch.**
 - **Right-size the endpoint.** PR vs. local branch vs. leave-as-is follows the work, not a fixed default.

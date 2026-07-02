@@ -33,7 +33,7 @@ Otherwise, work the findings:
 
 After changes are made:
 
-1. **Re-verify** the affected scope (relevant tests/lint, or the full suite if changes were broad) with `/verify-python` or the repo's verify command; fix and repeat until it passes before committing.
+1. **Re-verify** the affected scope (relevant tests/lint, or the full suite if changes were broad) with `/verify-impl` or the repo's verify command; fix and repeat until it passes before committing.
 2. **Commit** the fixes with `/make-commits` (or inline following its principles) and **push** — this updates the open PR when there is one.
 3. **Re-review** once more (step 1) to confirm the findings are resolved and nothing regressed.
 
@@ -41,7 +41,7 @@ Loop until the review **converges** — no hard round cap. **Converged** when a 
 
 ## Step 3 — Final verify
 
-After the loop settles, run the project's **full verify once more** as a closing hard gate — pre-commit / lint / type-check **and** the full test suite (`/verify-python` or the repo's verify command), since each address round only re-checked its own scope. Green → proceed to the report; red → halt and surface it verbatim (fold in and re-run a pure formatter reflow, but anything more is the user's call).
+After the loop settles, run the project's **full verify once more** as a closing hard gate — pre-commit / lint / type-check **and** the full test suite (`/verify-impl` or the repo's verify command), since each address round only re-checked its own scope. Green → proceed to the report; red → halt and surface it verbatim (fold in and re-run a pure formatter reflow, but anything more is the user's call).
 
 ## Step 4 — Report
 
@@ -61,4 +61,4 @@ If the loop halted (thrashing reviews, red final verify), report where and why i
 - **Converge, don't cap.** The loop ends when a review stops finding material problems (or two rounds surface nothing new), not on a fixed round count. Surface thrashing — a resolved finding reappearing, or reviews contradicting each other — rather than looping through it.
 - **Green at the end.** The final verify is a hard gate — a red result halts and surfaces, it does not get reported as shipped.
 - **Don't widen scope.** If addressing a finding tempts a refactor nobody asked for, surface it and ask.
-- **Delegate, don't re-implement.** `/review-pr`, `/review-diff`, `/address-review`, `/verify-python` are authoritative for their steps when installed.
+- **Delegate, don't re-implement.** `/review-pr`, `/review-diff`, `/address-review`, `/verify-impl` are authoritative for their steps when installed.
