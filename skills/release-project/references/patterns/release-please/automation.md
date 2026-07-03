@@ -1,4 +1,4 @@
-# Waypoint-style release-please
+# Automated release-please flow
 
 Use this model when releases should be generated from Conventional Commit history on `main`.
 
@@ -16,7 +16,7 @@ Create or reconcile:
 
 ## Config shape
 
-Waypoint uses a single root package with `release-type: "simple"`, `bump-minor-pre-major: true`, `include-component-in-tag: false`, and `CHANGELOG.md` as the changelog path. It also updates selected extra files, such as `frontend/package.json`, through `extra-files`.
+A common single-product setup uses `release-type: "simple"`, `bump-minor-pre-major: true` for pre-1.0 projects, `include-component-in-tag: false`, and `CHANGELOG.md` as the changelog path. It also updates selected extra files, such as a frontend `package.json`, through `extra-files`.
 
 Use this pattern when:
 

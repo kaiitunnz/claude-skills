@@ -7,10 +7,10 @@ description: Add, repair, or operate a project's release process. Routes between
 
 Set up or run a release process without treating every project like the same package. This skill is a router: survey the repo, choose the release model, load the matching references, then preserve project-specific policy.
 
-Template models:
+Common release models:
 
-- **Waypoint**: release-please on `main`, Conventional Commit PR titles, dynamic Python package versions from root `vX.Y.Z` tags, selected file updates such as frontend `package.json`, and generated `CHANGELOG.md`.
-- **FlowMesh**: explicit synchronized multi-package version bump, release prep PR, TestPyPI verification, PyPI Trusted Publishing, GHCR image verification, and fix-forward recovery.
+- **Automated changelog release**: release-please on `main`, Conventional Commit PR titles, dynamic package versions from root `vX.Y.Z` tags, selected explicit version-file updates, and generated `CHANGELOG.md`.
+- **Explicit synchronized release**: multi-package version bump, release prep PR, TestPyPI verification, PyPI Trusted Publishing, container-image verification, and fix-forward recovery.
 
 ## When to use
 
@@ -57,13 +57,13 @@ Always read:
 
 Then load only the matching pattern:
 
-- Waypoint-style release-please: `references/patterns/waypoint/release-please.md`
-- Waypoint-style versioning: `references/patterns/waypoint/versioning.md`
-- FlowMesh-style synchronized packages: `references/patterns/flowmesh/synchronized-python-packages.md`
-- Single Python package publishing: `references/patterns/flowmesh/single-python-package.md`
-- FlowMesh-style PyPI/TestPyPI publishing: `references/patterns/flowmesh/pypi-trusted-publishing.md`
-- FlowMesh-style GHCR images: `references/patterns/flowmesh/container-images.md`
-- Release failure recovery: `references/patterns/flowmesh/recovery.md`
+- Automated release-please flow: `references/patterns/release-please/automation.md`
+- Tag-derived package versioning: `references/patterns/release-please/tag-derived-versioning.md`
+- Synchronized Python packages: `references/patterns/explicit-python/synchronized-packages.md`
+- Single Python package publishing: `references/patterns/explicit-python/single-package.md`
+- PyPI/TestPyPI Trusted Publishing: `references/patterns/explicit-python/pypi-trusted-publishing.md`
+- Container image releases: `references/patterns/explicit-python/container-images.md`
+- Release failure recovery: `references/patterns/explicit-python/recovery.md`
 
 ## Guardrails
 

@@ -1,4 +1,4 @@
-# FlowMesh-style synchronized Python packages
+# Synchronized Python packages
 
 Use this model when several Python distributions must publish together with one explicit version.
 

@@ -1,4 +1,4 @@
-# Waypoint-style versioning
+# Tag-derived versioning
 
 Use this when multiple project parts share one repo-level version but only some files need explicit edits.
 
