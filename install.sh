@@ -34,7 +34,8 @@ Targets (combined; default is ~/.agents/skills when none is given):
 
 Actions / modifiers:
   --uninstall     Remove this repo's symlinks from the targets instead of creating them.
-  --dry-run       Print planned actions; change nothing.
+  --dry-run       Print planned actions; change nothing. Exits non-zero if a
+                  real run would hit collisions, so it previews the outcome.
   --force         Replace a plain-file collision and repoint a foreign symlink.
                   Never touches a real directory.
   --list          List available skills and exit.
@@ -256,9 +257,13 @@ for target in "${targets[@]}"; do
   fi
 done
 
-if [ "$uninstall" -eq 0 ] && [ "$dry_run" -eq 0 ] && [ "$collisions" -gt 0 ]; then
+if [ "$uninstall" -eq 0 ] && [ "$collisions" -gt 0 ]; then
   echo "" >&2
-  echo "$collisions skill(s) skipped due to collisions (see SKIP above)." >&2
+  if [ "$dry_run" -eq 1 ]; then
+    echo "$collisions skill(s) would be skipped due to collisions (see SKIP above)." >&2
+  else
+    echo "$collisions skill(s) skipped due to collisions (see SKIP above)." >&2
+  fi
   exit 3
 fi
 

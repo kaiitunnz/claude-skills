@@ -93,4 +93,13 @@ NEW="$TMP/newtarget"
 [ ! -e "$NEW" ] || fail "--dry-run created the target directory"
 pass "6: --dry-run created nothing"
 
+# --- 7: --dry-run predicts the real exit code (3 on collisions) --------------
+# $TMP still holds $victim (real dir) and $victim3 (foreign symlink) after #5.
+snapshot="$(ls -l "$TMP")"
+rc=0
+"$INSTALL" --dry-run --target "$TMP" >/dev/null || rc=$?
+[ "$rc" -eq 3 ] || fail "--dry-run over a colliding target should exit 3, got $rc"
+[ "$(ls -l "$TMP")" = "$snapshot" ] || fail "--dry-run changed the target"
+pass "7: --dry-run predicts exit 3 on collisions, changes nothing"
+
 echo "ALL SMOKE ASSERTIONS PASSED ($expected skills)"
