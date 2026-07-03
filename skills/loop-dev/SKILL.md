@@ -34,7 +34,7 @@ Bound the fix→re-verify loop sensibly (a few rounds); if checks stay red for a
 
 ## Step 4 — Ship
 
-Run `/ship` (passing `draft` through when given, and the `e2e` directive when the plan called for e2e). It drives verify → commit → push → open PR → revise (self-review → address findings → final verify, via `/loop-revise`) — forwarding `e2e` down that chain so the ship gate and revise phase keep exercising it.
+Run `/ship` (passing `draft` through when given, and the `e2e` directive when the plan called for e2e). It drives verify → commit → push → open PR → revise (self-review → address findings → final verify, via `/loop-revise`) — forwarding `e2e` down that chain.
 
 **Adjust the final deliverable to fit the work** — this is the one judgment call the skill makes autonomously:
 

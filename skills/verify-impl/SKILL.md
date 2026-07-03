@@ -84,7 +84,7 @@ Adding support for a new language means adding one `references/<lang>.md` and a 
 
 - **Verify, don't mutate.** No formatter writes, no `--fix`, no `--no-verify`, no edits. Use `--check`/report modes only; a tool that *would* change files is a red, reported with its diff/summary.
 - **Use the project's definition of green.** Prefer its declared command and only run tools it's configured for; don't impose checks the project doesn't use. **One stated exception:** an explicit `e2e` ask may run the end-to-end suite beyond the project's default gate — report it as run outside the default gate.
-- **Surface e2e coverage.** Always report whether e2e ran; a GREEN verdict must never imply e2e passed when it wasn't run. A suite the project deliberately excludes is only run on an explicit ask.
+- **Surface e2e coverage.** Always report whether e2e ran; a GREEN verdict must never imply e2e passed when it wasn't run.
 - **Run all checks, then report once.** Don't bail at the first failure — collect every result into one verdict.
 - **Ground the verdict in real output.** Every pass/fail claim comes from a command that actually ran; never infer green from "it looks fine."
 - **Stay in the verify lane.** This is static checks + tests. It doesn't launch the app (built-in `verify`), commit (`make-commits`), or push.

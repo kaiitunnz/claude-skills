@@ -34,7 +34,7 @@ Find the project's verify commands in the docs read at step 1 (sections like "Te
 
 - **Pre-commit / lint / type:** `pre-commit run --all-files`, `ruff`, `mypy`/`pyright`, `npm run lint`, `tsc --noEmit`, etc.
 - **Full test suite:** `pytest`, `npm test`, `cargo test`, `go test ./...`, etc. — run it *if the project has one*. Detect by presence of a test dir / documented command. If there is genuinely no test suite, say so and skip — that's the "if applicable" clause, not a license to skip an existing one.
-- **End-to-end suite:** when `e2e` was passed (or the repo's gate already includes it), run the project's e2e suite too — via `/verify-impl e2e` or the repo's e2e command. If it didn't run, note that in the report rather than letting green imply e2e coverage.
+- **End-to-end suite:** when `e2e` was passed (or the repo's gate already includes it), run the project's e2e suite too — via `/verify-impl e2e` or the repo's e2e command. If it didn't run, note that in the report.
 
 Run them against the current worktree (everything you're about to ship). Run independent commands in parallel where they don't share state.
 
