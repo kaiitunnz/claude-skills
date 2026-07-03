@@ -102,4 +102,12 @@ rc=0
 [ "$(ls -l "$TMP")" = "$snapshot" ] || fail "--dry-run changed the target"
 pass "7: --dry-run predicts exit 3 on collisions, changes nothing"
 
+# --- 8: --project alone defaults under cwd, not $HOME ------------------------
+proj="$TMP/proj"; mkdir -p "$proj"
+out="$(cd "$proj" && "$INSTALL" --project --dry-run 2>&1)"
+echo "$out" | grep -q "Installing into $proj/.agents/skills" \
+  || fail "--project alone did not default to ./.agents/skills"
+[ ! -e "$proj/.agents" ] || fail "--project --dry-run created a directory"
+pass "8: --project alone defaults to ./.agents/skills"
+
 echo "ALL SMOKE ASSERTIONS PASSED ($expected skills)"

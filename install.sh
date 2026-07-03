@@ -30,7 +30,8 @@ Targets (combined; default is ~/.agents/skills when none is given):
   --agents        Shorthand for ~/.agents/skills   (./.agents/skills with --project).
   --claude        Shorthand for ~/.claude/skills    (./.claude/skills with --project).
   --both          --agents and --claude.
-  --project       Resolve --agents/--claude under the current directory, not $HOME.
+  --project       Resolve preset and default targets under the current
+                  directory, not $HOME (so --project alone -> ./.agents/skills).
 
 Actions / modifiers:
   --uninstall     Remove this repo's symlinks from the targets instead of creating them.
@@ -103,8 +104,8 @@ base="$HOME"
 [ "$want_agents" -eq 1 ] && targets+=("$base/.agents/skills")
 [ "$want_claude" -eq 1 ] && targets+=("$base/.claude/skills")
 
-# Default when nothing was requested.
-[ "${#targets[@]}" -eq 0 ] && targets=("$HOME/.agents/skills")
+# Default when nothing was requested (honors --project via $base).
+[ "${#targets[@]}" -eq 0 ] && targets=("$base/.agents/skills")
 
 # Dedup targets (preserve order; bash 3.2 has no associative arrays).
 deduped=()
