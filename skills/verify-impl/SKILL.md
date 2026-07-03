@@ -9,7 +9,7 @@ Confirm a working tree is **green** before it goes anywhere: formatting, lint, t
 
 The gate is defined the same way in every language: **prefer the repo's own declared verify command**, and only when none exists compose one from the tools the project is actually configured for. Steps 1–4 below are language-agnostic; the composed-fallback specifics (which tools, which runner, which commands) live in a per-language reference loaded on demand.
 
-`ARGUMENTS` is optional: one or more paths to scope the **test run** (e.g. `tests/unit`); default is the whole project. Lint, types, and formatting always run project-wide regardless — narrowing those would let a failure elsewhere slip the gate.
+`ARGUMENTS` is optional: one or more paths to scope the **test run** (e.g. `tests/unit`); default is the whole project. Lint, types, and formatting always run project-wide regardless — narrowing those would let a failure elsewhere slip the gate. A bare `e2e` directive (a flag, not a path) additionally requests the **end-to-end suite** — a `/loop-dev` spec forwards it here when the plan calls for e2e.
 
 ## When to use vs. the built-in `verify`
 
@@ -17,6 +17,8 @@ The gate is defined the same way in every language: **prefer the repo's own decl
 - **Built-in `verify`** — launches the app and observes real runtime behavior to confirm a change *does what it should*. Use that when the question is "does the feature actually work", not "do the checks pass".
 
 They compose: `verify-impl` for green, built-in `verify` for *correct*.
+
+End-to-end / integration tests count as *tests* — automated, run through the test runner — so they live on **this** side of the line. **Manually driving the app** is the built-in `verify`'s job, not this skill's, even when an e2e suite would exercise the same flow.
 
 ## Step 1 — Survey the project
 
@@ -29,6 +31,7 @@ Run in parallel:
   - `AGENTS.md` / `CLAUDE.md` / `CONTRIBUTING.md` — a "before opening a PR" / "running tests" section often names the exact commands. **Prefer these over guessing.**
   - `Makefile` / `justfile` / a task runner (`nox`/`tox`, npm scripts, `cargo`, `mage`, …) — a `check` / `lint` / `test` target.
   - `.github/workflows/*` — only to learn *which* checks CI runs (not to replicate release/publish jobs). Releases and deploy steps are out of scope.
+- **Detect any e2e / integration suite** and whether the project's gate includes or excludes it: a separate `tests/e2e` / `tests/integration` dir, `@pytest.mark.e2e` / `integration` markers (often deselected via `-m "not e2e"` in `addopts`), a dedicated `make e2e` / `test:e2e` script, or a CI-only e2e job. Note both that it exists **and** whether the default test command runs it — Step 3 needs both facts.
 
 If you can't identify the ecosystem **and** there's no declared command to run, stop and say so — there's nothing to gate against.
 
@@ -47,9 +50,11 @@ Run them in cheap-to-expensive order so the fastest failures surface first, and 
 - If a tool is missing from the environment, sync dependencies once (the way the language reference specifies) and retry before reporting it as a failure.
 - Some first-run steps bootstrap their environment and are slow (e.g. pre-commit installing hooks); that's expected, not a hang.
 
+**End-to-end / integration tests.** The default test run above is whatever the project runs by default — which often *excludes* a slow or service-dependent e2e suite. Run e2e **in addition** when either: (a) the caller explicitly asks (the `e2e` directive, or a `/loop-dev` spec that calls for it) — this **overrides** a default exclusion; or (b) the project's own gate already includes e2e. A suite the project deliberately excludes is **not** force-run without an explicit ask. Invoke e2e the project's own way (its marker, dir, or dedicated command); don't fake it. If e2e can't run because required services or fixtures aren't available, report that — it counts as **not run**, not as a failure. A failure of an e2e run that *did* execute is RED like any other test.
+
 ## Step 4 — Report the verdict
 
-Summarize each check as pass/fail, then a single overall verdict. Quote the actual failing output (failing test names + assertion, type-checker `error:` lines, lint codes) — enough for the user to act, not the entire log.
+Summarize each check as pass/fail, then a single overall verdict. Quote the actual failing output (failing test names + assertion, type-checker `error:` lines, lint codes) — enough for the user to act, not the entire log. Always include an **`e2e`** line stating its status — `✓ N passed`, `✗ ...`, or `— not run (<reason>)` (`excluded from gate` / `no e2e suite` / `services unavailable`) — so a green verdict never silently implies e2e coverage it doesn't have.
 
 ```
 verify-impl — <project / subdir> (<language>)
@@ -58,10 +63,11 @@ verify-impl — <project / subdir> (<language>)
   types    ✓
   tests    ✗  2 failed: test_x, test_y
             <key assertion / error line>
+  e2e      —  not run (excluded from gate)
 Verdict: RED — lint + tests failing.
 ```
 
-When everything passes, keep it short: `Verdict: GREEN — N tests passed, lint/types/format clean.`
+When everything passes, keep it short but still state e2e: `Verdict: GREEN — N tests passed, lint/types/format clean; e2e N passed.` — or `; e2e not run — excluded from gate` when it wasn't run.
 
 Do **not** start fixing findings. Report and stop — fixing is the user's call (and `address-ci-failures` / a follow-up edit pass is the place for it).
 
@@ -76,7 +82,8 @@ Adding support for a new language means adding one `references/<lang>.md` and a 
 ## Guardrails
 
 - **Verify, don't mutate.** No formatter writes, no `--fix`, no `--no-verify`, no edits. Use `--check`/report modes only; a tool that *would* change files is a red, reported with its diff/summary.
-- **Use the project's definition of green.** Prefer its declared command and only run tools it's configured for; don't impose checks the project doesn't use.
+- **Use the project's definition of green.** Prefer its declared command and only run tools it's configured for; don't impose checks the project doesn't use. **One stated exception:** an explicit `e2e` ask may run the end-to-end suite beyond the project's default gate — report it as run outside the default gate.
+- **Surface e2e coverage.** Always report whether e2e ran; a GREEN verdict must never imply e2e passed when it wasn't run. A suite the project deliberately excludes is only run on an explicit ask.
 - **Run all checks, then report once.** Don't bail at the first failure — collect every result into one verdict.
 - **Ground the verdict in real output.** Every pass/fail claim comes from a command that actually ran; never infer green from "it looks fine."
 - **Stay in the verify lane.** This is static checks + tests. It doesn't launch the app (built-in `verify`), commit (`make-commits`), or push.

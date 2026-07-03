@@ -38,6 +38,16 @@ uv run mypy                      # types — honors [tool.mypy] files
 uv run pytest <paths-or-empty>   # tests
 ```
 
+## End-to-end / integration suite
+
+Detect it and whether the default `pytest` run includes it:
+
+- `@pytest.mark.e2e` / `@pytest.mark.integration` markers — often deselected by default via `addopts = -m "not e2e"` in `[tool.pytest.ini_options]` (existence ≠ part of the gate).
+- A dedicated `tests/e2e` / `tests/integration` directory the default `pytest` invocation doesn't collect.
+- A task-runner target (`make e2e`, a `test:e2e` nox/tox session).
+
+When e2e is triggered (Step 3), run it the project's own way — `uv run pytest -m e2e`, `uv run pytest tests/e2e`, or the dedicated target — rather than inventing a selection. If it needs services/fixtures that aren't up, report it as **not run**, not failed.
+
 ## Notes
 
 - First `pre-commit run` of a session bootstraps hook environments (slow, not a hang).
