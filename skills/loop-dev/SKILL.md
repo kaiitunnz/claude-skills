@@ -11,7 +11,7 @@ Invoking `/loop-dev` authorizes the whole pipeline — planning, branching, comm
 
 ## Step 1 — Plan
 
-Run `/loop-plan` on the request. Take its converged plan file, the deliverable type (code vs. document), the execution organization (single-context vs. workqueue crew), and any open concerns. If an open concern is genuinely blocking, halt and surface it; otherwise proceed.
+Run `/loop-plan` on the request. Take its converged plan file, the deliverable type (code vs. document), the execution organization (single-context vs. workqueue vs. Waypoint crew), and any open concerns. If an open concern is genuinely blocking, halt and surface it; otherwise proceed.
 
 ## Step 2 — Branch
 
@@ -21,7 +21,7 @@ Determine the base (`gh repo view --json defaultBranchRef -q .defaultBranchRef.n
 
 ## Step 3 — Implement (verify loop)
 
-Execute the plan. If the plan chose a **workqueue crew**, orchestrate it via `/waypoint-workqueue` — split, dispatch, collect, merge. Otherwise implement in this context.
+Execute the plan. If the plan chose a **workqueue**, orchestrate it via `/waypoint-workqueue` — split, dispatch, collect, merge. If the plan chose a **Waypoint crew**, orchestrate it via `/waypoint-crew` — stand up the role sessions, run the lifecycle phases, and honor its PRD / architecture / pre-ship checkpoint gates even though `/loop-dev` is otherwise autonomous. Otherwise implement in this context.
 
 Commit **along the way** with `/make-commits` at each logical unit — don't accumulate one giant diff.
 
@@ -52,7 +52,7 @@ End with a compact summary: the plan path, the branch, what was implemented, the
 ## Guardrails
 
 - **Autonomous, halt on breakage.** No per-step confirmation; stop and surface any failure, unresolved ambiguity, or scope creep.
-- **Delegate, don't re-implement.** `/loop-plan`, `/waypoint-workqueue`, `/make-commits`, `/verify-impl`, `/ship` (which itself delegates the revision phase to `/loop-revise`) are authoritative for their steps.
+- **Delegate, don't re-implement.** `/loop-plan`, `/waypoint-workqueue`, `/waypoint-crew`, `/make-commits`, `/verify-impl`, `/ship` (which itself delegates the revision phase to `/loop-revise`) are authoritative for their steps.
 - **Green before ship.** Code reaches `/ship` only with passing checks.
 - **Never build on the default branch.**
 - **Right-size the endpoint.** PR vs. local branch vs. leave-as-is follows the work, not a fixed default.

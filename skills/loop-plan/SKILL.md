@@ -23,7 +23,7 @@ Write the plan to a **file** (in your scratchpad directory, or in the repo if th
 
 The plan states: the goals from step 1, the deliverable type, the ordered steps, the files/sections touched, the verification signal (tests to pass, or the review bar for prose), and the risks/open questions. When the request or the repo's convention calls for **end-to-end verification**, record that in the verification signal — it's what tells `/loop-dev` to pass the `e2e` directive down the gate chain.
 
-**Multi-agent organization.** Decide whether the work should fan out. If `/waypoint-workqueue` is available *and* the work is a batch of largely independent tasks at a scale one context can't hold well (migration, codemod, broad audit, many parallel edits), plan the crew split — lead vs. workers, task boundaries, how results merge — and record it in the plan. Otherwise plan for a single context. Don't reach for a workqueue for tightly-coupled feature work.
+**Multi-agent organization.** Decide whether the work should fan out. If `/waypoint-workqueue` is available *and* the work is a batch of largely independent tasks at a scale one context can't hold well (migration, codemod, broad audit, many parallel edits), plan the workqueue split — lead vs. workers, task boundaries, how results merge — and record it in the plan. If `/waypoint-crew` is available *and* the work is a product/lifecycle-scale effort that needs durable multi-role Waypoint sessions, plan the crew shape, phase boundaries, dependency contracts, and checkpoint gates. Otherwise plan for a single context. Don't reach for a workqueue for tightly-coupled feature work, and don't reach for a crew for a bounded batch or one coherent change.
 
 ## Step 4 — Converge (review → revise loop)
 
@@ -36,7 +36,7 @@ Loop until the plan converges — no hard round cap:
 
 ## Step 5 — Report
 
-Report back compactly: the plan file path, a short summary of the approach, the chosen execution organization (single-context vs. workqueue crew), and any open concerns. When invoked standalone this is the final output; when invoked by `/loop-dev`, this is the handoff — return the plan path and proceed.
+Report back compactly: the plan file path, a short summary of the approach, the chosen execution organization (single-context vs. workqueue vs. Waypoint crew), and any open concerns. When invoked standalone this is the final output; when invoked by `/loop-dev`, this is the handoff — return the plan path and proceed.
 
 ## Guardrails
 
@@ -44,4 +44,4 @@ Report back compactly: the plan file path, a short summary of the approach, the 
 - **The plan is a file.** Never rely on in-context-only plans — the reviewer can't see them.
 - **Material findings only.** Keep the convergence loop from spinning on nitpicks — it converges when reviews stop finding real problems, not on a fixed round count. Surface thrashing rather than looping through it.
 - **Don't over-explore.** Investigate to the depth the plan needs; delegate breadth to subagents.
-- **Right-size the crew.** Only plan a workqueue fan-out when the work genuinely warrants it.
+- **Right-size the organization.** Only plan a workqueue fan-out or Waypoint crew when the work genuinely warrants it.
