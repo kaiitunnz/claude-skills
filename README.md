@@ -22,6 +22,7 @@ The format follows the emerging cross-agent convention also used by [`AGENTS.md`
 | [`loop-revise`](loop-revise/SKILL.md) | Critical self-review → address findings → re-review loop (runs to convergence like `loop-plan`), capped with a final full-verify gate. Targets an open PR or a local diff; the revision phase of `ship`, usable standalone. |
 | [`loop-plan`](loop-plan/SKILL.md) | Iterate a request into a converged, written plan via a fresh-context review→revise loop (runs until reviews stop finding material issues). Any request type; autonomous, no plan mode, no approval gate. |
 | [`loop-dev`](loop-dev/SKILL.md) | Full autonomous dev loop: `loop-plan` → branch → implement (with `make-commits`) → verify to green → `ship`. Branches on code vs. document deliverable; right-sizes the endpoint (PR / local branch / leave-as-is). |
+| [`babysit-prs`](babysit-prs/SKILL.md) | One idempotent sweep over your open PRs — bring stale branches current, fix CI (`address-ci-failures`), address review feedback (`address-review`), re-verify, report per-PR status. Acts only on your PRs; never force-pushes, merges, or posts replies. Pair with `/loop` or `/schedule`. |
 
 ## Typical flows
 
@@ -34,6 +35,7 @@ The format follows the emerging cross-agent convention also used by [`AGENTS.md`
 - **Self-review before pushing:** `review-diff` (worktree) or `review-pr` (after push)
 - **Whole branch out the door:** `ship` (runs the verify → commit → push → PR → `loop-revise` chain end to end)
 - **Request → shipped, hands-off:** `loop-dev` (plans via `loop-plan`, then branch → implement → verify → `ship`)
+- **Keep open PRs green:** `/loop <interval> /babysit-prs` (recurring sweep: update branch → fix CI → address review → re-verify → report)
 
 ## Install
 
