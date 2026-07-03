@@ -1,6 +1,6 @@
 ---
 name: loop-revise
-description: Critically self-review a just-shipped change, drive every review finding to resolution, then confirm the result is still green. Runs the review → address → re-review loop with fresh eyes until it converges, then closes with a final full-verify gate. Orchestrates /review-pr, /review-diff, /address-review, and the repo's verify skill when installed; falls back inline when they aren't. Optional argument is a PR number/URL or a diff range; defaults to the open PR for the current branch. Use when the user says "/loop-revise", "review and fix what I just shipped", or as the revision phase of /ship.
+description: Critically self-review a just-shipped change, drive every review finding to resolution, then confirm the result is still green. Runs the review → address → re-review loop with fresh eyes until it converges, then closes with a final full-verify gate. Orchestrates /review-pr, /review-diff, /address-review, and the repo's verify skill when installed; falls back inline when they aren't. Optional argument is a PR number/URL or a diff range; defaults to the open PR for the current branch. Add `e2e` to include the end-to-end suite in the verify gates. Use when the user says "/loop-revise", "review and fix what I just shipped", or as the revision phase of /ship.
 ---
 
 Take a change that's already committed (and usually pushed as a PR) and drive it to a **reviewed, resolved, verified-green** state. This is the **self-review → address findings → re-review** loop, run to convergence and capped with a final verify gate. It's an orchestrator: each sub-step has a dedicated skill; when that skill is installed, invoke it and treat it as authoritative; when it isn't, do the step inline following the principles named here. Never duplicate a delegated skill's work — call it, read its output, move on.
@@ -10,6 +10,8 @@ Take a change that's already committed (and usually pushed as a PR) and drive it
 - A **PR number or URL** → review the PR.
 - A **diff range** `<target> [<base>]`, or `staged` / `unstaged` → review a local diff.
 - **Empty** → default to the open PR for the current branch (`gh pr view --json number,url,state`); if there's no open PR, fall back to the local diff `HEAD..<base>` (base from `gh repo view --json defaultBranchRef -q .defaultBranchRef.name`, else `main`).
+
+`e2e` is a **reserved directive token**: recognize it anywhere in `ARGUMENTS` and strip it *before* interpreting the remainder as a target — otherwise `<PR> e2e` would mis-parse as a diff range with `base=e2e`. When present, forward `e2e` to `/verify-impl` in both gates below; if it's the only token, fall through to the empty-arg default target.
 
 Invoking `/loop-revise` (directly or via `/ship`) authorizes the whole loop, including the commits and pushes that addressing findings produces. Do **not** re-confirm each round. Do halt and surface whenever a step fails, is ambiguous, or wants to widen scope beyond resolving the findings.
 
@@ -33,7 +35,7 @@ Otherwise, work the findings:
 
 After changes are made:
 
-1. **Re-verify** the affected scope (relevant tests/lint, or the full suite if changes were broad) with `/verify-impl` or the repo's verify command; fix and repeat until it passes before committing.
+1. **Re-verify** the affected scope (relevant tests/lint, or the full suite if changes were broad) with `/verify-impl` or the repo's verify command — forwarding the `e2e` directive when it was given; fix and repeat until it passes before committing.
 2. **Commit** the fixes with `/make-commits` (or inline following its principles) and **push** — this updates the open PR when there is one.
 3. **Re-review** once more (step 1) to confirm the findings are resolved and nothing regressed.
 
@@ -41,7 +43,7 @@ Loop until the review **converges** — no hard round cap. **Converged** when a 
 
 ## Step 3 — Final verify
 
-After the loop settles, run the project's **full verify once more** as a closing hard gate — pre-commit / lint / type-check **and** the full test suite (`/verify-impl` or the repo's verify command), since each address round only re-checked its own scope. Green → proceed to the report; red → halt and surface it verbatim (fold in and re-run a pure formatter reflow, but anything more is the user's call).
+After the loop settles, run the project's **full verify once more** as a closing hard gate — pre-commit / lint / type-check **and** the full test suite (`/verify-impl` or the repo's verify command, forwarding the `e2e` directive when it was given), since each address round only re-checked its own scope. Green → proceed to the report; red → halt and surface it verbatim (fold in and re-run a pure formatter reflow, but anything more is the user's call).
 
 ## Step 4 — Report
 
@@ -50,7 +52,7 @@ End with a compact summary:
     Revised <target>.
       Review: <final verdict>
       Findings: <N addressed, M pushed back>
-      Final verify: <commands> — passed
+      Final verify: <commands> — passed (e2e: <ran N passed / not run — reason>)
 
 If the loop halted (thrashing reviews, red final verify), report where and why instead — what's resolved, what isn't, and the exact next action the user needs to take.
 

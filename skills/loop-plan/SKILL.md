@@ -21,7 +21,7 @@ Investigate as far as the request needs — no further. For anything beyond a co
 
 Write the plan to a **file** (in your scratchpad directory, or in the repo if the plan is itself a deliverable). A file is required — step 4's reviewer runs in a fresh context and can only review what's written down. Capture the path; it's the handoff to `/loop-dev`.
 
-The plan states: the goals from step 1, the deliverable type, the ordered steps, the files/sections touched, the verification signal (tests to pass, or the review bar for prose), and the risks/open questions.
+The plan states: the goals from step 1, the deliverable type, the ordered steps, the files/sections touched, the verification signal (tests to pass, or the review bar for prose), and the risks/open questions. When the request or the repo's convention calls for **end-to-end verification**, record that in the verification signal — it's what tells `/loop-dev` to pass the `e2e` directive down the gate chain.
 
 **Multi-agent organization.** Decide whether the work should fan out. If `/waypoint-workqueue` is available *and* the work is a batch of largely independent tasks at a scale one context can't hold well (migration, codemod, broad audit, many parallel edits), plan the crew split — lead vs. workers, task boundaries, how results merge — and record it in the plan. Otherwise plan for a single context. Don't reach for a workqueue for tightly-coupled feature work.
 

@@ -27,14 +27,14 @@ Commit **along the way** with `/make-commits` at each logical unit — don't acc
 
 Then loop by deliverable type:
 
-- **Code:** after each meaningful chunk, run `/verify-impl` (or the repo's own verify command). On failure, fix and re-verify. Repeat until green. Reaching step 4 with red checks is not allowed.
+- **Code:** after each meaningful chunk, run `/verify-impl` (or the repo's own verify command). On failure, fix and re-verify. Repeat until green. Reaching step 4 with red checks is not allowed. **When the plan/spec calls for end-to-end verification — or the repo already gates on an e2e suite — pass the `e2e` directive to `/verify-impl`** so the gate exercises it.
 - **Document:** revise against the plan's review bar (spawn a fresh-context subagent to critique the draft, then revise). No test gate applies. **Git-tracked by default** — commit drafts with `/make-commits` like any other work. If the document location has no git repo initialized, adapt: keep the draft/revise loop, skip the commit and branch steps, and report the file path as the endpoint.
 
 Bound the fix→re-verify loop sensibly (a few rounds); if checks stay red for a reason you can't resolve, halt and surface the failure verbatim.
 
 ## Step 4 — Ship
 
-Run `/ship` (passing `draft` through when given). It drives verify → commit → push → open PR → revise (self-review → address findings → final verify, via `/loop-revise`).
+Run `/ship` (passing `draft` through when given, and the `e2e` directive when the plan called for e2e). It drives verify → commit → push → open PR → revise (self-review → address findings → final verify, via `/loop-revise`) — forwarding `e2e` down that chain so the ship gate and revise phase keep exercising it.
 
 **Adjust the final deliverable to fit the work** — this is the one judgment call the skill makes autonomously:
 
@@ -47,7 +47,7 @@ Pick the fitting endpoint from repo context; don't ask unless the choice is genu
 
 ## Step 5 — Final report
 
-End with a compact summary: the plan path, the branch, what was implemented, the verify result, and the endpoint (PR URL / local branch / workspace). If the pipeline halted early, report where, why, and the exact next action.
+End with a compact summary: the plan path, the branch, what was implemented, the verify result, and the endpoint (PR URL / local branch / workspace). **Surface `/verify-impl`'s e2e status** — ran (result) or not run (reason) — so a gap in end-to-end coverage is visible rather than assumed. If the pipeline halted early, report where, why, and the exact next action.
 
 ## Guardrails
 
