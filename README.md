@@ -39,19 +39,22 @@ The format follows the emerging cross-agent convention also used by [`AGENTS.md`
 
 ## Install
 
-The right install path depends on your agent — each one looks in a different place for custom skills / commands / prompts. Common patterns:
+`install.sh` symlinks the skills under [`skills/`](skills/) into a skill directory. It defaults to `~/.agents/skills` — the cross-agent location that Codex, OpenCode, Cursor, and other `AGENTS.md`-family agents read — and can also target Claude Code's `~/.claude/skills`. Symlinks (not copies) mean one source of truth: `git pull` in this repo instantly updates every install.
 
 ```bash
-# Claude Code — user scope (every project) or project scope
-ln -s "$PWD"/make-commits ~/.claude/skills/make-commits
-ln -s "$PWD"/make-commits .claude/skills/make-commits
-
-# Codex, OpenCode, and other agents following the AGENTS.md convention
-ln -s "$PWD"/make-commits ~/.agents/skills/make-commits        # user scope
-ln -s "$PWD"/make-commits .agents/skills/make-commits          # project scope
+./install.sh                          # all skills -> ~/.agents/skills (default)
+./install.sh --both                   # -> ~/.agents/skills and ~/.claude/skills
+./install.sh --claude                 # Claude Code only
+./install.sh ship make-commits --both # a chosen subset
+./install.sh --project --both         # project scope: ./.agents/skills, ./.claude/skills
+./install.sh --target ~/some/dir      # any directory (repeatable)
+./install.sh --uninstall --both       # remove this repo's symlinks
+./install.sh --dry-run --both         # preview without changing anything
 ```
 
-Once installed, invoke either by slash command (`/<skill-name>`) on agents that support it, or by describing the task in plain language — agents will match against each skill's `description` field.
+The installer is idempotent (re-running is a no-op) and safe: it never overwrites a real directory, and leaves a symlink pointing at another source untouched unless you pass `--force`. It targets macOS and Linux; run it as `./install.sh` or `bash install.sh`. See `./install.sh --help` for the full flag list, and `test/smoke.sh` for the behavior contract.
+
+Once installed, invoke a skill by slash command (`/<skill-name>`) on agents that support it, or by describing the task in plain language — agents match against each skill's `description` field.
 
 Skills are intentionally written as **prose procedures**, not code — they describe what the agent should read, decide, and do, in the order it should do them. That makes them portable across agents and easy to adapt: fork a `SKILL.md`, tweak the steps, drop it into your own workflow.
 
