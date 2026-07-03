@@ -81,7 +81,7 @@ ignore_missing_imports = true
   [project.scripts]
   myproject = "my_project.cli:main"
   ```
-- **Async**: add `pytest-asyncio` to `dev`; set the async mode in `[tool.pytest.ini_options]` (see `layout-and-tests.md`).
+- **Async**: add `pytest-asyncio` to `dev`; set the async mode in `[tool.pytest.ini_options]` (see `references/languages/python/layout-and-tests.md`).
 - **Workspace (monorepo)**: the root adds
   ```toml
   [tool.uv.workspace]
