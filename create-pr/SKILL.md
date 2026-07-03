@@ -1,6 +1,6 @@
 ---
 name: create-pr
-description: Open a pull request that matches the host repo's existing style. Use when the user says "create a PR" or "open a PR" and there is a non-empty branch ahead of the base. Inspects recent merged PRs to learn the project's title prefix, body structure, and detail level, then drafts a faithful PR body and pushes the branch. Optional argument `draft` opens a draft PR instead.
+description: Open a pull request that matches the host repo's existing style. Use when the user says "/create-pr", "create a PR", or "open a PR" and there is a non-empty branch ahead of the base. Inspects recent merged PRs to learn the project's title prefix, body structure, and detail level, then drafts a faithful PR body and pushes the branch. Optional argument `draft` opens a draft PR instead.
 ---
 
 Open a pull request for the current branch that **matches the host repository's existing PR style** — title prefix, body section order, level of detail, formatting. Do not invent a generic template.

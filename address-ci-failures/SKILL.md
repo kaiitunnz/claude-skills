@@ -1,6 +1,6 @@
 ---
 name: address-ci-failures
-description: Diagnose and fix failing CI checks on a PR. Fetches failing runs via `gh pr checks` / `gh run view`, classifies each failure (lint / type / test / build / infra-flake), reproduces locally where possible, and fixes them in batch. Optional argument is a PR number, PR URL, a run URL/ID, a path/file containing log output, or pasted log text; defaults to the open PR for the current branch. Leaves changes staged for /make-commits.
+description: Diagnose and fix failing CI checks on a PR. Fetches failing runs via `gh pr checks` / `gh run view`, classifies each failure (lint / type / test / build / infra-flake), reproduces locally where possible, and fixes them in batch. Optional argument is a PR number, PR URL, a run URL/ID, a path/file containing log output, or pasted log text; defaults to the open PR for the current branch. Leaves changes staged for /make-commits. Use when the user says "/address-ci-failures", "fix the CI", "why is CI failing", or pastes failing CI logs.
 ---
 
 Take a PR with red CI and turn it green. Fetch the failing checks, work out why each one failed, fix them all locally, and leave the changes staged for the user to commit. The output is staged code changes plus a per-check summary of what was wrong and what changed.

@@ -1,6 +1,6 @@
 ---
 name: address-review
-description: Work through reviewer feedback on a PR systematically — accept or push back on each finding with reasoning, implement accepted ones, draft a per-finding reply to the reviewer. Optional argument is a PR number, PR URL, or a path/file containing pasted review text; defaults to the open PR for the current branch. Leaves changes staged for /make-commits; renders the reply draft in chat. Use when the user pastes reviewer comments or says "address this review".
+description: Work through reviewer feedback on a PR systematically — accept or push back on each finding with reasoning, implement accepted ones, draft a per-finding reply to the reviewer. Optional argument is a PR number, PR URL, or a path/file containing pasted review text; defaults to the open PR for the current branch. Leaves changes staged for /make-commits; renders the reply draft in chat. Use when the user says "/address-review", "address this review", or pastes reviewer comments.
 ---
 
 Take a reviewer's findings and work through them one by one. Be **critical** — agree when they're right, push back when they're not, and only implement what's genuinely correct. The output is staged code changes plus a draft reply per finding for the user to post.
