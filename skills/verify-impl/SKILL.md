@@ -76,6 +76,7 @@ Do **not** start fixing findings. Report and stop — fixing is the user's call 
 The four steps above are language-agnostic. Each language's **composed-fallback** toolchain — the exact tools, runner, and commands used when Step 2 finds no declared command — lives in a reference, loaded only when the fallback fires for that language:
 
 - **Python** — uv + `ruff` / `mypy` / `pytest`, pre-commit vs. composed path, workspace handling: `references/python.md`.
+- **JavaScript / TypeScript** — package-manager-driven (`npm` / `pnpm` / `yarn` / `bun`): `prettier` / `eslint` (or Biome) / `tsc` / the test runner, with Playwright / Cypress for e2e: `references/typescript.md`.
 
 Adding support for a new language means adding one `references/<lang>.md` and a row here — Steps 1–4 don't change.
 
