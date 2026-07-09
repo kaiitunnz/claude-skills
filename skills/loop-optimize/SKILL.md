@@ -65,7 +65,7 @@ Within the agreed scope and budget, repeat autonomously — do not ask permissio
 
 1. **Inspect.** Read the current incumbent, the relevant implementation, profiling/evaluation evidence, and the history of previous experiments and rejected ideas. Don't retry an equivalent failed experiment without a concrete new reason.
 2. **Hypothesize.** State what is likely limiting the objective and why the proposed change should help. Prefer evidence-driven changes over arbitrary mutations.
-3. **Change.** Make one coherent change within scope. Checkpoint the candidate so its exact state can be identified and restored.
+3. **Change.** Make one coherent change within scope. Checkpoint the candidate as a durable snapshot — commit it (via `/make-commits` or inline) so accepting advances the branch, rejecting reverts to the incumbent commit, the eventual winner is already committed for the shipping workflow, and Step 5's ablation can revert individual accepted changes.
 4. **Validate through the cheapest useful cascade.** Kill invalid candidates before spending on expensive measurement. Typical ordering — adapt the exact stages to the repo, they are not fixed here:
 
    ```text
@@ -92,7 +92,7 @@ A candidate that improves the metric but fails required correctness or constrain
 
 ## Step 6 — Leave and report the best result
 
-Leave the best confirmed candidate on the optimization branch. **Do not auto-ship or open a PR** — the user invokes the existing shipping workflow (`/ship`, `/loop-dev`) separately. Report compactly:
+Leave the best confirmed candidate on the optimization branch. **Do not auto-ship or open a PR** — the user invokes the existing shipping workflow (`/ship`) separately. Report compactly:
 
 ```text
 Optimization:   <goal>
