@@ -23,9 +23,12 @@ Be inquisitive before locking the scope. Ask the user for explicit confirmation 
 Place the RFC in the first existing directory from this list:
 
 1. `./tmp/docs/rfcs`
-2. `./docs/rfcs`
-3. `./rfcs`
-4. `.`
+2. `./tmp/docs`
+3. `./tmp`
+4. `./docs/rfcs`
+5. `./docs`
+6. `./rfcs`
+7. `.`
 
 If none of the RFC directories exists, write to the repo root. Do not create one of the preferred directories unless the user asks or project docs require it.
 
