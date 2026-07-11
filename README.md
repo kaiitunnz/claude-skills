@@ -38,7 +38,7 @@ The format follows the emerging cross-agent convention also used by [`AGENTS.md`
 - **Self-review before pushing:** `review-diff` (worktree) or `review-pr` (after push)
 - **Whole branch out the door:** `ship` (runs the verify → commit → push → PR → `loop-revise` chain end to end)
 - **Request → shipped, hands-off:** `loop-dev` (plans via `loop-plan`, then branch → implement → verify → `ship`)
-- **Product idea → technical design:** `write-prd` (align product scope and success measures, then hand off to a technical plan or RFC as needed)
+- **Product idea → technical design:** `write-prd` → `write-rfc` (align product scope and success measures, then turn the approved product direction into a technical design as needed)
 - **Make it faster / better, measured:** `loop-optimize` (baseline → hypothesize → change → evaluate → keep/reject on the repo's own harness; leaves the winner on a branch for `ship`)
 - **Keep open PRs green:** `/loop <interval> /babysit-prs` (recurring sweep: update branch → fix CI → address review → re-verify → report)
 
