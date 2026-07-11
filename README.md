@@ -18,6 +18,8 @@ The format follows the emerging cross-agent convention also used by [`AGENTS.md`
 | [`review-diff`](skills/review-diff/SKILL.md) | Critical review of a local diff (staged / unstaged / `<target> [<base>]` range). Focuses on correctness, style, and other concrete issues; ends with a ship/iterate verdict. |
 | [`review-pr`](skills/review-pr/SKILL.md) | Critical review of a PR (number, URL, or current branch). Checks out the PR locally, reads description or infers intent, ends with a merge verdict. |
 | [`memory-audit`](skills/memory-audit/SKILL.md) | Audit the shared cross-workspace memory store for stale, duplicate, and contradicting entries. Drafts specific edits and asks for batch approval before applying. |
+| [`write-prd`](skills/write-prd/SKILL.md) | Turn a rough product idea or feature request into a concrete product requirements document (PRD), defining users, prioritized scope, requirements, success metrics, and launch considerations before technical design or implementation. |
+| [`write-rfc`](skills/write-rfc/SKILL.md) | Expand a rough feature, architecture, product, process, or technical request into a concrete RFC/design proposal that enables informed technical decisions. |
 | [`ship`](skills/ship/SKILL.md) | End-to-end release: verify (pre-commit + tests) → commit → push → open PR → revise (self-review + address findings + final verify, via `loop-revise`). Orchestrates the other skills when installed, falls back to inline otherwise. Supports `draft`. |
 | [`loop-revise`](skills/loop-revise/SKILL.md) | Critical self-review → address findings → re-review loop (runs to convergence like `loop-plan`), capped with a final full-verify gate. Targets an open PR or a local diff; the revision phase of `ship`, usable standalone. |
 | [`loop-plan`](skills/loop-plan/SKILL.md) | Iterate a request into a converged, written plan via a fresh-context review→revise loop (runs until reviews stop finding material issues). Any request type; autonomous, no plan mode, no approval gate. |
@@ -36,6 +38,7 @@ The format follows the emerging cross-agent convention also used by [`AGENTS.md`
 - **Self-review before pushing:** `review-diff` (worktree) or `review-pr` (after push)
 - **Whole branch out the door:** `ship` (runs the verify → commit → push → PR → `loop-revise` chain end to end)
 - **Request → shipped, hands-off:** `loop-dev` (plans via `loop-plan`, then branch → implement → verify → `ship`)
+- **Product idea → technical design:** `write-prd` → `write-rfc` (align product scope and success measures, then turn the approved product direction into a technical design as needed)
 - **Make it faster / better, measured:** `loop-optimize` (baseline → hypothesize → change → evaluate → keep/reject on the repo's own harness; leaves the winner on a branch for `ship`)
 - **Keep open PRs green:** `/loop <interval> /babysit-prs` (recurring sweep: update branch → fix CI → address review → re-verify → report)
 
