@@ -59,7 +59,38 @@ The format follows the emerging cross-agent convention also used by [`AGENTS.md`
 
 The installer is idempotent (re-running is a no-op) and safe: it never overwrites a real directory, and leaves a symlink pointing at another source untouched unless you pass `--force`. It targets macOS and Linux; run it as `./install.sh` or `bash install.sh`. See `./install.sh --help` for the full flag list, and `test/smoke.sh` for the behavior contract.
 
+Third-party skills (see below) are only available once their submodule is checked out, so on a fresh clone initialize submodules first:
+
+```bash
+git clone --recurse-submodules <this-repo>        # or, after a plain clone:
+git submodule update --init
+```
+
 Once installed, invoke a skill by slash command (`/<skill-name>`) on agents that support it, or by describing the task in plain language — agents match against each skill's `description` field.
+
+## Third-party sources
+
+Alongside the first-party skills under [`skills/`](skills/), this repo can vendor skills from other authors as **git submodules** under [`3rdparty/`](3rdparty/). A submodule pins an exact upstream commit, so imports are reproducible and updates are deliberate; the upstream `LICENSE` travels with the code rather than being copied.
+
+Each source is curated by a sibling `3rdparty/<vendor>.manifest` — a plain list of skill directories (relative to the submodule) to expose. Curation is deliberate: upstream repos often ship deprecated or work-in-progress skills we don't want auto-installed, so only manifest-listed skills are surfaced by `install.sh`. `install.sh` installs first-party and manifest-listed third-party skills together under their basename; on a name clash the first-party skill wins (and the installer warns). Run `./install.sh --list` to see every skill and its source.
+
+### Vendored sources
+
+| Source | Upstream | License | Skills exposed |
+| --- | --- | --- | --- |
+| [`3rdparty/mattpocock`](3rdparty/mattpocock) | [mattpocock/skills](https://github.com/mattpocock/skills) | MIT © Matt Pocock | `setup-matt-pocock-skills`, `handoff`, `teach`, `grill-me`, `grilling` (see [`3rdparty/mattpocock.manifest`](3rdparty/mattpocock.manifest)) |
+
+### Updating a vendored source
+
+```bash
+git submodule update --remote 3rdparty/mattpocock      # pull the latest upstream commit
+./install.sh --list                                    # review what the manifest now resolves
+#   edit 3rdparty/mattpocock.manifest to adopt/drop skills as needed
+git add 3rdparty/mattpocock 3rdparty/mattpocock.manifest
+git commit -m "Bump mattpocock skills"
+```
+
+To adopt more skills from an existing source, add their paths to the manifest (`ls 3rdparty/mattpocock/skills/*/` shows the upstream categories). To vendor a new source, `git submodule add <url> 3rdparty/<vendor>` and create `3rdparty/<vendor>.manifest`.
 
 Skills are intentionally written as **prose procedures**, not code — they describe what the agent should read, decide, and do, in the order it should do them. That makes them portable across agents and easy to adapt: fork a `SKILL.md`, tweak the steps, drop it into your own workflow.
 

@@ -3,6 +3,12 @@
 # install.sh — symlink the skills in this repo into one or more skill
 # directories (default: ~/.agents/skills), or remove them again.
 #
+# Sources: first-party skills live flat under skills/ (one dir per skill).
+# Third-party sources are git submodules under 3rdparty/, each curated by a
+# sibling 3rdparty/<vendor>.manifest that lists the skill directories (paths
+# relative to the submodule) to expose. Every source resolves to the same
+# flat name -> directory map; from there install/uninstall is identical.
+#
 # Portability contract: targets stock macOS bash 3.2 and Linux. No bash-4
 # features (associative arrays, mapfile/readarray, ${var,,}); no GNU-only
 # tools (realpath, readlink -f). Symlinks are created with absolute targets
@@ -17,13 +23,19 @@ set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd -P)"
 SKILLS_DIR="$SCRIPT_DIR/skills"
+THIRDPARTY_DIR="$SCRIPT_DIR/3rdparty"
+
+TAB="$(printf '\t')"
 
 usage() {
   cat <<'EOF'
 Usage: ./install.sh [options] [skill...]
 
 Symlink skills from this repo into one or more skill directories.
-With no skill names, all skills under skills/ are installed.
+With no skill names, all skills (first-party + curated third-party) are installed.
+
+First-party skills live under skills/. Third-party skills come from git
+submodules under 3rdparty/, curated by 3rdparty/<vendor>.manifest files.
 
 Targets (combined; default is ~/.agents/skills when none is given):
   --target DIR    Install into DIR (repeatable).
@@ -39,25 +51,113 @@ Actions / modifiers:
                   real run would hit collisions, so it previews the outcome.
   --force         Replace a plain-file collision and repoint a foreign symlink.
                   Never touches a real directory.
-  --list          List available skills and exit.
+  --list          List available skills (with their source) and exit.
   -h, --help      Show this help and exit.
 
 Examples:
   ./install.sh                        # all skills -> ~/.agents/skills
   ./install.sh --both                 # all skills -> ~/.agents/skills and ~/.claude/skills
   ./install.sh ship make-commits --claude
+  ./install.sh handoff teach --both   # third-party skills by name
   ./install.sh --project --both       # into ./.agents/skills and ./.claude/skills
   ./install.sh --uninstall --both
 EOF
 }
 
-list_skills() {
-  # Directory-only glob, basenames, sorted. Matches the set install operates on.
-  local d
+# --- source registry ---------------------------------------------------------
+#
+# REGISTRY holds one "name<TAB>absolute-src-dir" line per installable skill.
+# First-party wins on a name clash; a duplicate from another source is warned
+# and ignored so a foreign skill can't shadow a first-party one.
+
+REGISTRY=""
+
+resolve_src() {
+  # Echo the src dir registered for a name, or nothing.
+  # Here-string (not a pipe) so the read-loop's EOF status can't propagate
+  # through pipefail into the caller's `existing="$(resolve_src ...)"`.
+  local name="$1" n p out=""
+  while IFS="$TAB" read -r n p; do
+    [ "$n" = "$name" ] && { out="$p"; break; }
+  done <<< "$REGISTRY"
+  printf '%s' "$out"
+}
+
+registry_add() {
+  # $1 = skill name, $2 = absolute src dir. First definition wins.
+  local name="$1" src="$2" existing
+  existing="$(resolve_src "$name")"
+  if [ -n "$existing" ]; then
+    [ "$existing" = "$src" ] && return 0
+    echo "warning: skill '$name' offered by two sources; keeping $existing, ignoring $src" >&2
+    return 0
+  fi
+  REGISTRY="${REGISTRY}${name}${TAB}${src}
+"
+}
+
+build_registry() {
+  local d name mf vendor line src
+
+  # First-party: every immediate subdirectory of skills/.
   for d in "$SKILLS_DIR"/*/; do
     [ -d "$d" ] || continue
-    basename "$d"
+    registry_add "$(basename "$d")" "${d%/}"
   done
+
+  # Third-party: each 3rdparty/<vendor>.manifest lists skill dirs (relative to
+  # the 3rdparty/<vendor>/ submodule) to expose.
+  [ -d "$THIRDPARTY_DIR" ] || return 0
+  for mf in "$THIRDPARTY_DIR"/*.manifest; do
+    [ -f "$mf" ] || continue
+    vendor="$(basename "$mf" .manifest)"
+    while IFS= read -r line || [ -n "$line" ]; do
+      line="${line%%#*}"                                   # strip comments
+      line="$(printf '%s' "$line" | sed 's/^[[:space:]]*//;s/[[:space:]]*$//')"
+      [ -n "$line" ] || continue
+      src="$THIRDPARTY_DIR/$vendor/$line"
+      if [ ! -f "$src/SKILL.md" ]; then
+        echo "warning: $vendor manifest lists '$line' but $src/SKILL.md is missing" >&2
+        echo "         (run: git submodule update --init 3rdparty/$vendor)" >&2
+        continue
+      fi
+      registry_add "$(basename "$line")" "$src"
+    done < "$mf"
+  done
+  return 0
+}
+
+all_names() {
+  local n p acc=""
+  while IFS="$TAB" read -r n p; do
+    [ -n "$n" ] && acc="${acc}${n}
+"
+  done <<< "$REGISTRY"
+  printf '%s' "$acc" | sort
+}
+
+list_skills() {
+  # name + source root label, aligned, sorted by name.
+  local name src label
+  while IFS= read -r name; do
+    [ -n "$name" ] || continue
+    src="$(resolve_src "$name")"
+    case "$src" in
+      "$SKILLS_DIR"/*) label="skills" ;;
+      "$THIRDPARTY_DIR"/*) label="3rdparty/$(printf '%s' "${src#$THIRDPARTY_DIR/}" | cut -d/ -f1)" ;;
+      *) label="?" ;;
+    esac
+    printf '%-26s %s\n' "$name" "$label"
+  done <<< "$(all_names)"
+  return 0
+}
+
+is_our_src() {
+  # True if a symlink target is one we manage (under skills/ or 3rdparty/).
+  case "$1" in
+    "$SKILLS_DIR"/*|"$THIRDPARTY_DIR"/*) return 0 ;;
+    *) return 1 ;;
+  esac
 }
 
 # --- parse arguments ---------------------------------------------------------
@@ -70,6 +170,7 @@ project=0
 uninstall=0
 dry_run=0
 force=0
+do_list=0
 
 while [ $# -gt 0 ]; do
   case "$1" in
@@ -89,13 +190,22 @@ while [ $# -gt 0 ]; do
     --uninstall) uninstall=1; shift ;;
     --dry-run) dry_run=1; shift ;;
     --force) force=1; shift ;;
-    --list) list_skills; exit 0 ;;
+    --list) do_list=1; shift ;;
     -h|--help) usage; exit 0 ;;
     --) shift; while [ $# -gt 0 ]; do skills+=("$1"); shift; done ;;
     -*) echo "error: unknown option: $1" >&2; usage >&2; exit 2 ;;
     *) skills+=("$1"); shift ;;
   esac
 done
+
+# --- build the source registry (needed by --list and skill resolution) -------
+
+build_registry
+
+if [ "$do_list" -eq 1 ]; then
+  list_skills
+  exit 0
+fi
 
 # --- resolve targets ---------------------------------------------------------
 
@@ -121,13 +231,13 @@ targets=("${deduped[@]}")
 # --- resolve skills ----------------------------------------------------------
 
 if [ "${#skills[@]}" -eq 0 ]; then
-  # All skills. read-loop keeps this bash-3.2 safe (no mapfile).
+  # All registered skills. read-loop keeps this bash-3.2 safe (no mapfile).
   while IFS= read -r name; do
     skills+=("$name")
-  done < <(list_skills)
+  done < <(all_names)
 else
   for name in "${skills[@]}"; do
-    if [ ! -d "$SKILLS_DIR/$name" ]; then
+    if [ -z "$(resolve_src "$name")" ]; then
       echo "error: no such skill: $name" >&2
       echo "available:" >&2
       list_skills | sed 's/^/  /' >&2
@@ -137,7 +247,7 @@ else
 fi
 
 if [ "${#skills[@]}" -eq 0 ]; then
-  echo "error: no skills found under $SKILLS_DIR" >&2
+  echo "error: no skills found (looked under $SKILLS_DIR and $THIRDPARTY_DIR)" >&2
   exit 1
 fi
 
@@ -147,8 +257,9 @@ collisions=0
 
 do_install_one() {
   local name="$1" target="$2"
-  local src="$SKILLS_DIR/$name"
-  local dst="$target/$name"
+  local src dst
+  src="$(resolve_src "$name")"
+  dst="$target/$name"
 
   if [ -L "$dst" ]; then
     local cur
@@ -157,33 +268,29 @@ do_install_one() {
       echo "  ok       $name"
       return 0
     fi
-    case "$cur" in
-      "$SKILLS_DIR"/*)
-        # Our own link, pointing at a different/stale path — heal it.
-        if [ "$dry_run" -eq 1 ]; then
-          echo "  relink   $name (dry-run)"
-        else
-          ln -sfn "$src" "$dst"
-          echo "  relinked $name"
-        fi
-        return 0
-        ;;
-      *)
-        # Foreign symlink — a deliberate install by someone else.
-        if [ "$force" -eq 1 ]; then
-          if [ "$dry_run" -eq 1 ]; then
-            echo "  relink   $name (foreign, --force, dry-run)"
-          else
-            ln -sfn "$src" "$dst"
-            echo "  relinked $name (was foreign)"
-          fi
-          return 0
-        fi
-        echo "  SKIP     $name (symlink to another source: $cur)"
-        collisions=$((collisions+1))
-        return 0
-        ;;
-    esac
+    if is_our_src "$cur"; then
+      # Our own link, pointing at a different/stale path — heal it.
+      if [ "$dry_run" -eq 1 ]; then
+        echo "  relink   $name (dry-run)"
+      else
+        ln -sfn "$src" "$dst"
+        echo "  relinked $name"
+      fi
+      return 0
+    fi
+    # Foreign symlink — a deliberate install by someone else.
+    if [ "$force" -eq 1 ]; then
+      if [ "$dry_run" -eq 1 ]; then
+        echo "  relink   $name (foreign, --force, dry-run)"
+      else
+        ln -sfn "$src" "$dst"
+        echo "  relinked $name (was foreign)"
+      fi
+      return 0
+    fi
+    echo "  SKIP     $name (symlink to another source: $cur)"
+    collisions=$((collisions+1))
+    return 0
   elif [ -d "$dst" ]; then
     echo "  SKIP     $name (real directory, not a symlink — left untouched)"
     collisions=$((collisions+1))
@@ -216,7 +323,6 @@ do_install_one() {
 
 do_uninstall_one() {
   local name="$1" target="$2"
-  local src="$SKILLS_DIR/$name"
   local dst="$target/$name"
 
   if [ ! -L "$dst" ]; then
@@ -225,19 +331,16 @@ do_uninstall_one() {
   fi
   local cur
   cur="$(readlink "$dst")"
-  case "$cur" in
-    "$SKILLS_DIR"/*)
-      if [ "$dry_run" -eq 1 ]; then
-        echo "  remove   $name (dry-run)"
-      else
-        rm -f "$dst"
-        echo "  removed  $name"
-      fi
-      ;;
-    *)
-      echo "  keep     $name (symlink to another source: $cur)"
-      ;;
-  esac
+  if is_our_src "$cur"; then
+    if [ "$dry_run" -eq 1 ]; then
+      echo "  remove   $name (dry-run)"
+    else
+      rm -f "$dst"
+      echo "  removed  $name"
+    fi
+  else
+    echo "  keep     $name (symlink to another source: $cur)"
+  fi
 }
 
 for target in "${targets[@]}"; do

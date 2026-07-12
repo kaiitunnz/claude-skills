@@ -110,4 +110,69 @@ echo "$out" | grep -q "Installing into $proj/.agents/skills" \
 [ ! -e "$proj/.agents" ] || fail "--project --dry-run created a directory"
 pass "8: --project alone defaults to ./.agents/skills"
 
+# --- third-party sources (hermetic fixture) ----------------------------------
+# install.sh resolves sources relative to its own dir, so a self-contained copy
+# in a fixture tree exercises third-party discovery without needing the real
+# submodule checked out. Layout:
+#   fixture/install.sh
+#   fixture/skills/first-skill/SKILL.md        (first-party)
+#   fixture/skills/dup/SKILL.md                (first-party, name clash)
+#   fixture/3rdparty/acme/cat/nested-skill/SKILL.md   (manifest, deep nesting)
+#   fixture/3rdparty/acme/cat/hidden-skill/SKILL.md   (present, NOT in manifest)
+#   fixture/3rdparty/acme/cat/dup/SKILL.md            (manifest, clashes w/ above)
+#   fixture/3rdparty/acme/cat/gone-skill              (in manifest, no SKILL.md)
+#   fixture/3rdparty/acme.manifest
+FIX="$TMP/fixture"
+mk_skill() { mkdir -p "$1"; printf -- '---\nname: %s\n---\nbody\n' "$(basename "$1")" > "$1/SKILL.md"; }
+mkdir -p "$FIX/skills" "$FIX/3rdparty/acme/cat"
+cp "$INSTALL" "$FIX/install.sh"
+FINST="$FIX/install.sh"
+mk_skill "$FIX/skills/first-skill"
+mk_skill "$FIX/skills/dup"
+mk_skill "$FIX/3rdparty/acme/cat/nested-skill"
+mk_skill "$FIX/3rdparty/acme/cat/hidden-skill"
+mk_skill "$FIX/3rdparty/acme/cat/dup"
+mkdir -p "$FIX/3rdparty/acme/cat/gone-skill"   # listed in manifest but no SKILL.md
+cat > "$FIX/3rdparty/acme.manifest" <<'EOF'
+# curated third-party skills
+cat/nested-skill
+  cat/dup          # clashes with first-party dup; first-party must win
+cat/gone-skill     # missing SKILL.md; must be warned + skipped, not fatal
+EOF
+
+# --- 9: --list surfaces manifest skills (with source) but not un-listed ones --
+lst="$("$FINST" --list)"
+echo "$lst" | grep -Eq "^nested-skill[[:space:]]+3rdparty/acme$" \
+  || fail "--list did not show nested-skill from 3rdparty/acme"
+echo "$lst" | grep -q "hidden-skill" \
+  && fail "--list showed a skill that is not in the manifest"
+echo "$lst" | grep -Eq "^dup[[:space:]]+skills$" \
+  || fail "--list did not resolve dup to the first-party source"
+pass "9: --list shows curated third-party skills with source, hides un-listed"
+
+# --- 10: install links first-party + manifest skills; curation + nesting hold -
+FT="$TMP/fixture-target"
+"$FINST" --target "$FT" >/dev/null 2>"$TMP/fx.err" || true
+[ -L "$FT/first-skill" ]  || fail "first-party skill not linked from fixture"
+[ -L "$FT/nested-skill" ] && [ -r "$FT/nested-skill/SKILL.md" ] \
+  || fail "deep-nested third-party skill did not resolve through the link"
+[ "$(readlink "$FT/nested-skill")" = "$FIX/3rdparty/acme/cat/nested-skill" ] \
+  || fail "nested-skill link points at the wrong path"
+[ ! -e "$FT/hidden-skill" ] || fail "un-manifested skill leaked into the target"
+[ ! -e "$FT/gone-skill" ]   || fail "manifest entry with no SKILL.md was linked"
+[ "$(readlink "$FT/dup")" = "$FIX/skills/dup" ] \
+  || fail "cross-source name clash: first-party dup did not win"
+grep -q "gone-skill" "$TMP/fx.err" || fail "missing SKILL.md was not warned about"
+grep -q "two sources" "$TMP/fx.err" || fail "cross-source clash was not warned about"
+pass "10: curation, deep nesting, missing-entry skip, and first-party-wins all hold"
+
+# --- 11: a manifest skill installs/uninstalls by name like any other ---------
+UT="$TMP/fixture-uninstall"
+"$FINST" nested-skill --target "$UT" >/dev/null 2>&1
+[ -L "$UT/nested-skill" ] || fail "could not install a third-party skill by name"
+[ ! -e "$UT/first-skill" ] || fail "installing one skill by name pulled in others"
+"$FINST" --uninstall --target "$UT" >/dev/null 2>&1
+[ ! -e "$UT/nested-skill" ] || fail "uninstall did not remove the third-party link"
+pass "11: third-party skill installs by name and uninstalls cleanly"
+
 echo "ALL SMOKE ASSERTIONS PASSED ($expected skills)"
