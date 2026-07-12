@@ -76,8 +76,13 @@ EOF
 # REGISTRY holds one "name<TAB>absolute-src-dir" line per installable skill.
 # First-party wins on a name clash; a duplicate from another source is warned
 # and ignored so a foreign skill can't shadow a first-party one.
+#
+# DECLARED holds every third-party src a manifest lists (one dir per line),
+# even one that lost a name clash and so isn't in REGISTRY — such skills are
+# curated, not "undeclared", and discovery must not re-offer them by path.
 
 REGISTRY=""
+DECLARED=""
 
 resolve_src() {
   # Echo the src dir registered for a name, or nothing.
@@ -136,6 +141,8 @@ build_registry() {
         echo "         (run: git submodule update --init 3rdparty/$vendor)" >&2
         continue
       fi
+      DECLARED="${DECLARED}${src}
+"
       registry_add "$(basename "$line")" "$src"
     done < "$mf"
   done
@@ -156,13 +163,14 @@ vendor_label() {
   printf '3rdparty/%s' "$(printf '%s' "${1#"$THIRDPARTY_DIR"/}" | cut -d/ -f1)"
 }
 
-src_registered() {
-  # True if an absolute src dir is already in the registry (first-party or
-  # a manifest-declared third-party skill).
-  local target="$1" n p
-  while IFS="$TAB" read -r n p; do
-    [ "$p" = "$target" ] && return 0
-  done <<< "$REGISTRY"
+is_declared_src() {
+  # True if an absolute third-party src dir is declared by a manifest — even if
+  # it lost a name clash and so never entered REGISTRY. Checked against DECLARED
+  # (not REGISTRY) so a shadowed-but-curated skill isn't re-offered as undeclared.
+  local target="$1" line
+  while IFS= read -r line; do
+    [ "$line" = "$target" ] && return 0
+  done <<< "$DECLARED"
   return 1
 }
 
@@ -178,7 +186,7 @@ undeclared_paths() {
     while IFS= read -r found; do
       [ -n "$found" ] || continue
       dir="$(dirname "$found")"
-      src_registered "$dir" && continue
+      is_declared_src "$dir" && continue
       acc="${acc}${dir#"$SCRIPT_DIR"/}
 "
     done <<< "$(find "$sub" -name .git -prune -o -type f -name SKILL.md -print 2>/dev/null)"
@@ -321,7 +329,7 @@ add_target_by_name() {
 }
 
 add_target_by_path() {
-  local arg="$1" abs
+  local arg="$1" abs name reg
   case "$arg" in
     /*) abs="$arg" ;;
     *)  abs="$SCRIPT_DIR/$arg" ;;
@@ -332,13 +340,28 @@ add_target_by_path() {
   esac
   case "$abs" in
     "$SKILLS_DIR"/*|"$THIRDPARTY_DIR"/*) : ;;
-    *) echo "error: path '$arg' is outside skills/ and 3rdparty/ — refusing to install" >&2; exit 2 ;;
+    *) echo "error: path '$arg' is outside skills/ and 3rdparty/ — refusing" >&2; exit 2 ;;
   esac
-  if [ ! -f "$abs/SKILL.md" ]; then
-    echo "error: '$arg' is not a skill directory (no SKILL.md at $abs)" >&2
-    exit 2
+  name="$(basename "$abs")"
+  # Uninstall only needs the link name; the source may already be gone (upstream
+  # removed the skill) yet the stale link must still be removable by its path.
+  if [ "$uninstall" -ne 1 ]; then
+    if [ ! -f "$abs/SKILL.md" ]; then
+      echo "error: '$arg' is not a skill directory (no SKILL.md at $abs)" >&2
+      exit 2
+    fi
+    # Don't let an explicit path silently shadow a first-party or curated skill
+    # of the same name — that would repoint its link with no warning.
+    reg="$(resolve_src "$name")"
+    if [ -n "$reg" ] && [ "$reg" != "$abs" ]; then
+      if [ "$force" -ne 1 ]; then
+        echo "error: '$name' is already provided by ${reg#"$SCRIPT_DIR"/}; pass --force to install '$arg' in its place" >&2
+        exit 2
+      fi
+      echo "warning: installing '$name' from $arg, shadowing ${reg#"$SCRIPT_DIR"/} (--force)" >&2
+    fi
   fi
-  inst_name+=("$(basename "$abs")")
+  inst_name+=("$name")
   inst_src+=("$abs")
 }
 

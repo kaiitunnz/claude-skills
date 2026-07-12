@@ -238,14 +238,45 @@ PT="$TMP/fixture-bypath"
 [ ! -e "$PT/hidden-skill" ] || fail "uninstall-by-path did not remove the link"
 pass "13: undeclared third-party skill installs and uninstalls by exact path"
 
-# --- 14: install-by-path rejects unsafe / non-skill targets ------------------
-rc=0; "$FINST" /etc/hostname --target "$TMP/rej1" 2>/dev/null || rc=$?
+# --- 14: install-by-path rejects unsafe / non-skill targets (right guard each)
+rc=0; "$FINST" /etc/hostname --target "$TMP/rej1" 2>"$TMP/r1.err" || rc=$?
 [ "$rc" -eq 2 ] || fail "a path outside skills/ and 3rdparty/ was not rejected"
 [ ! -e "$TMP/rej1" ] || fail "a rejected path still created its target dir"
-rc=0; "$FINST" 3rdparty/acme/cat --target "$TMP/rej2" 2>/dev/null || rc=$?
+grep -q "outside" "$TMP/r1.err" || fail "outside-repo path hit the wrong guard"
+rc=0; "$FINST" 3rdparty/acme/cat --target "$TMP/rej2" 2>"$TMP/r2.err" || rc=$?
 [ "$rc" -eq 2 ] || fail "a path with no SKILL.md was not rejected"
-rc=0; "$FINST" 3rdparty/acme/cat/../escape-skill --target "$TMP/rej3" 2>/dev/null || rc=$?
+grep -q "no SKILL.md" "$TMP/r2.err" || fail "non-skill path hit the wrong guard"
+rc=0; "$FINST" 3rdparty/acme/cat/../escape-skill --target "$TMP/rej3" 2>"$TMP/r3.err" || rc=$?
 [ "$rc" -eq 2 ] || fail "a path containing '..' was not rejected"
-pass "14: install-by-path rejects outside-repo, non-skill, and '..' paths"
+grep -q "contains '\.\.'" "$TMP/r3.err" || fail "'..' path hit the wrong guard"
+pass "14: install-by-path rejects outside-repo, non-skill, and '..' paths (right guard each)"
+
+# --- 15: install-by-path won't silently shadow a curated/first-party skill ----
+SG="$TMP/fixture-shadow"
+"$FINST" --target "$SG" >/dev/null 2>&1                     # default install: dup -> first-party
+[ "$(readlink "$SG/dup")" = "$FIX/skills/dup" ] || fail "precondition: dup should be first-party"
+# The third-party dup lives at cat/dup; installing it by path must be refused...
+rc=0; "$FINST" 3rdparty/acme/cat/dup --target "$SG" >/dev/null 2>"$TMP/sg.err" || rc=$?
+[ "$rc" -eq 2 ] || fail "shadowing a first-party skill by path was not refused"
+grep -q "already provided by" "$TMP/sg.err" || fail "shadow-refusal message missing"
+[ "$(readlink "$SG/dup")" = "$FIX/skills/dup" ] || fail "refused shadow still repointed the link"
+# ...unless --force, which repoints and warns.
+"$FINST" --force 3rdparty/acme/cat/dup --target "$SG" >/dev/null 2>"$TMP/sg2.err"
+[ "$(readlink "$SG/dup")" = "$FIX/3rdparty/acme/cat/dup" ] || fail "--force did not repoint the shadow"
+grep -q "shadowing" "$TMP/sg2.err" || fail "--force shadow warning missing"
+# The curated-but-shadowed cat/dup must NOT be advertised as an undeclared path.
+"$FINST" --list | grep -q "3rdparty/acme/cat/dup" \
+  && fail "--list offered a manifest-declared (shadowed) skill as undeclared"
+pass "15: shadow refused without --force, repointed with it; shadowed skill not mislabeled"
+
+# --- 16: uninstall-by-path removes a link even after upstream removed source --
+DL="$TMP/fixture-dangling"
+"$FINST" 3rdparty/acme/cat/hidden-skill --target "$DL" >/dev/null
+[ -L "$DL/hidden-skill" ] || fail "precondition: install-by-path should have linked hidden-skill"
+rm -f "$FIX/3rdparty/acme/cat/hidden-skill/SKILL.md"        # simulate upstream removal
+"$FINST" --uninstall 3rdparty/acme/cat/hidden-skill --target "$DL" >/dev/null 2>&1 \
+  || fail "uninstall-by-path failed once the source SKILL.md was gone"
+[ ! -e "$DL/hidden-skill" ] || fail "dangling link not removed by uninstall-by-path"
+pass "16: uninstall-by-path removes a link even after the source is gone"
 
 echo "ALL SMOKE ASSERTIONS PASSED ($expected first-party skills + third-party fixture)"
