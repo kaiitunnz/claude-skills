@@ -1,0 +1,16 @@
+# mattpocock.manifest — the skills to install by default from the
+# 3rdparty/mattpocock submodule (github.com/mattpocock/skills, MIT).
+#
+# One skill directory per line, relative to the submodule root. Each must
+# contain a SKILL.md. install.sh installs each under its basename alongside
+# the first-party skills. Blank lines and `#` comments are ignored.
+#
+# Curation is deliberate: upstream also ships deprecated/, in-progress/, and
+# personal/ skills we don't want auto-installed. To adopt more, add their
+# paths here (see `ls 3rdparty/mattpocock/skills/*/`).
+
+skills/engineering/setup-matt-pocock-skills
+skills/productivity/handoff
+skills/productivity/teach
+skills/productivity/grill-me
+skills/productivity/grilling
