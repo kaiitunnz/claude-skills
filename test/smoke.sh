@@ -121,6 +121,7 @@ pass "8: --project alone defaults to ./.agents/skills"
 #   fixture/3rdparty/acme/cat/hidden-skill/SKILL.md   (present, NOT in manifest)
 #   fixture/3rdparty/acme/cat/dup/SKILL.md            (manifest, clashes w/ above)
 #   fixture/3rdparty/acme/cat/gone-skill              (in manifest, no SKILL.md)
+#   fixture/3rdparty/acme/escape-skill/SKILL.md       (reachable only via `..`)
 #   fixture/3rdparty/acme.manifest
 FIX="$TMP/fixture"
 mk_skill() { mkdir -p "$1"; printf -- '---\nname: %s\n---\nbody\n' "$(basename "$1")" > "$1/SKILL.md"; }
@@ -132,12 +133,14 @@ mk_skill "$FIX/skills/dup"
 mk_skill "$FIX/3rdparty/acme/cat/nested-skill"
 mk_skill "$FIX/3rdparty/acme/cat/hidden-skill"
 mk_skill "$FIX/3rdparty/acme/cat/dup"
+mk_skill "$FIX/3rdparty/acme/escape-skill"     # real dir, but only reachable via `..`
 mkdir -p "$FIX/3rdparty/acme/cat/gone-skill"   # listed in manifest but no SKILL.md
 cat > "$FIX/3rdparty/acme.manifest" <<'EOF'
 # curated third-party skills
 cat/nested-skill
   cat/dup          # clashes with first-party dup; first-party must win
 cat/gone-skill     # missing SKILL.md; must be warned + skipped, not fatal
+cat/../escape-skill  # `..` escape; must be rejected even though it resolves
 EOF
 
 # --- 9: --list surfaces manifest skills (with source) but not un-listed ones --
@@ -160,11 +163,21 @@ FT="$TMP/fixture-target"
   || fail "nested-skill link points at the wrong path"
 [ ! -e "$FT/hidden-skill" ] || fail "un-manifested skill leaked into the target"
 [ ! -e "$FT/gone-skill" ]   || fail "manifest entry with no SKILL.md was linked"
+[ ! -e "$FT/escape-skill" ] || fail "manifest entry with '..' escaped the submodule and linked"
 [ "$(readlink "$FT/dup")" = "$FIX/skills/dup" ] \
   || fail "cross-source name clash: first-party dup did not win"
 grep -q "gone-skill" "$TMP/fx.err" || fail "missing SKILL.md was not warned about"
 grep -q "two sources" "$TMP/fx.err" || fail "cross-source clash was not warned about"
-pass "10: curation, deep nesting, missing-entry skip, and first-party-wins all hold"
+grep -q "escape-skill" "$TMP/fx.err" || fail "'..' manifest entry was not warned about"
+pass "10: curation, deep nesting, missing-entry skip, '..' rejection, first-party-wins all hold"
+
+# --- 10b: --dry-run over a third-party source plans the link but writes nothing
+DR="$TMP/fixture-dryrun"
+drout="$("$FINST" --dry-run --target "$DR" 2>/dev/null)"
+[ ! -e "$DR" ] || fail "--dry-run created the target for a third-party source"
+echo "$drout" | grep -q "nested-skill (dry-run)" \
+  || fail "--dry-run did not plan the third-party skill link"
+pass "10b: --dry-run plans a third-party link and creates nothing"
 
 # --- 11: a manifest skill installs/uninstalls by name like any other ---------
 UT="$TMP/fixture-uninstall"
@@ -175,4 +188,35 @@ UT="$TMP/fixture-uninstall"
 [ ! -e "$UT/nested-skill" ] || fail "uninstall did not remove the third-party link"
 pass "11: third-party skill installs by name and uninstalls cleanly"
 
-echo "ALL SMOKE ASSERTIONS PASSED ($expected skills)"
+# --- 12: the shipped manifests resolve against their real submodules ----------
+# The tests above are hermetic (fixture only). This one guards the actual
+# committed 3rdparty/*.manifest files: a typo or an upstream reorg after
+# `git submodule update --remote` would otherwise degrade silently to a
+# skipped skill. Gated on the submodule being checked out, so a submodule-less
+# CI run skips rather than fails.
+real_validated=0
+reallst="$("$INSTALL" --list 2>/dev/null)"
+for mf in "$REPO"/3rdparty/*.manifest; do
+  [ -f "$mf" ] || continue
+  vendor="$(basename "$mf" .manifest)"
+  sub="$REPO/3rdparty/$vendor"
+  if [ ! -e "$sub/.git" ]; then
+    echo "SKIP: real '$vendor' manifest (submodule not checked out)"
+    continue
+  fi
+  while IFS= read -r line || [ -n "$line" ]; do
+    line="${line%%#*}"
+    line="$(printf '%s' "$line" | sed 's/^[[:space:]]*//;s/[[:space:]]*$//')"
+    [ -n "$line" ] || continue
+    [ -f "$sub/$line/SKILL.md" ] \
+      || fail "real '$vendor' manifest lists '$line' but its SKILL.md is missing (typo or upstream reorg?)"
+    name="$(basename "$line")"
+    echo "$reallst" | grep -Eq "^$name[[:space:]]+3rdparty/$vendor$" \
+      || fail "real manifest skill '$name' did not resolve in --list from 3rdparty/$vendor"
+  done < "$mf"
+  real_validated=1
+done
+[ "$real_validated" -eq 1 ] \
+  && pass "12: shipped third-party manifest(s) resolve against their submodules"
+
+echo "ALL SMOKE ASSERTIONS PASSED ($expected first-party skills + third-party fixture)"

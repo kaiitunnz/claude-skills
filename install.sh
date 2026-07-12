@@ -115,6 +115,14 @@ build_registry() {
       line="${line%%#*}"                                   # strip comments
       line="$(printf '%s' "$line" | sed 's/^[[:space:]]*//;s/[[:space:]]*$//')"
       [ -n "$line" ] || continue
+      # Reject entries that could escape the submodule (absolute or `..`).
+      # Manifests are trusted maintainer content; this is defense-in-depth.
+      case "$line" in
+        /*) echo "warning: $vendor manifest entry '$line' is an absolute path; skipping" >&2; continue ;;
+      esac
+      case "/$line/" in
+        */../*) echo "warning: $vendor manifest entry '$line' contains '..'; skipping" >&2; continue ;;
+      esac
       src="$THIRDPARTY_DIR/$vendor/$line"
       if [ ! -f "$src/SKILL.md" ]; then
         echo "warning: $vendor manifest lists '$line' but $src/SKILL.md is missing" >&2
@@ -144,7 +152,7 @@ list_skills() {
     src="$(resolve_src "$name")"
     case "$src" in
       "$SKILLS_DIR"/*) label="skills" ;;
-      "$THIRDPARTY_DIR"/*) label="3rdparty/$(printf '%s' "${src#$THIRDPARTY_DIR/}" | cut -d/ -f1)" ;;
+      "$THIRDPARTY_DIR"/*) label="3rdparty/$(printf '%s' "${src#"$THIRDPARTY_DIR"/}" | cut -d/ -f1)" ;;
       *) label="?" ;;
     esac
     printf '%-26s %s\n' "$name" "$label"
