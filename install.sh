@@ -32,7 +32,7 @@ usage() {
 Usage: ./install.sh [options] [skill|path...]
 
 Symlink skills from this repo into one or more skill directories.
-With no arguments, every skill listed here is installed (see --list).
+With no arguments, all default skills are installed (see --list).
 
 A positional argument is either a skill NAME (installs that skill) or a PATH
 containing a slash (installs the skill directory at that exact path — use this
@@ -118,7 +118,7 @@ build_registry() {
   done
 
   # Third-party: each 3rdparty/<vendor>.manifest lists skill dirs (relative to
-  # the 3rdparty/<vendor>/ submodule) to expose.
+  # the 3rdparty/<vendor>/ submodule) to install by default.
   [ -d "$THIRDPARTY_DIR" ] || return 0
   for mf in "$THIRDPARTY_DIR"/*.manifest; do
     [ -f "$mf" ] || continue

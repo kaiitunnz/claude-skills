@@ -86,7 +86,7 @@ A positional argument with no slash is a skill **name**; one containing a slash 
 
 ### Vendored sources
 
-| Source | Upstream | License | Skills exposed |
+| Source | Upstream | License | Skills installed by default |
 | --- | --- | --- | --- |
 | [`3rdparty/mattpocock`](3rdparty/mattpocock) | [mattpocock/skills](https://github.com/mattpocock/skills) | MIT © Matt Pocock | `setup-matt-pocock-skills`, `handoff`, `teach`, `grill-me`, `grilling` (see [`3rdparty/mattpocock.manifest`](3rdparty/mattpocock.manifest)) |
 
