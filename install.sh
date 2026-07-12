@@ -4,9 +4,9 @@
 # directories (default: ~/.agents/skills), or remove them again.
 #
 # Sources: first-party skills live flat under skills/ (one dir per skill).
-# Third-party sources are git submodules under 3rdparty/, each curated by a
-# sibling 3rdparty/<vendor>.manifest that lists the skill directories (paths
-# relative to the submodule) to expose. Every source resolves to the same
+# Third-party sources are git submodules under 3rdparty/, each with a sibling
+# 3rdparty/<vendor>.manifest that lists the skill directories (paths relative
+# to the submodule) to install by default. Every source resolves to the same
 # flat name -> directory map; from there install/uninstall is identical.
 #
 # Portability contract: targets stock macOS bash 3.2 and Linux. No bash-4
@@ -32,16 +32,16 @@ usage() {
 Usage: ./install.sh [options] [skill|path...]
 
 Symlink skills from this repo into one or more skill directories.
-With no arguments, all skills (first-party + curated third-party) are installed.
+With no arguments, every skill listed here is installed (see --list).
 
 A positional argument is either a skill NAME (installs that skill) or a PATH
 containing a slash (installs the skill directory at that exact path — use this
-to install a third-party skill that no manifest declares; see --list).
+to install a third-party skill no manifest lists; see --list).
 
 First-party skills live under skills/. Third-party skills come from git
-submodules under 3rdparty/, curated by 3rdparty/<vendor>.manifest files.
---list shows the curated skills plus any other third-party skills you can
-install by path.
+submodules under 3rdparty/, each with a 3rdparty/<vendor>.manifest listing
+which skills to install by default. --list shows those plus any other
+third-party skill you can install by path.
 
 Targets (combined; default is ~/.agents/skills when none is given):
   --target DIR    Install into DIR (repeatable).
@@ -64,8 +64,8 @@ Examples:
   ./install.sh                        # all skills -> ~/.agents/skills
   ./install.sh --both                 # all skills -> ~/.agents/skills and ~/.claude/skills
   ./install.sh ship make-commits --claude
-  ./install.sh handoff teach --both   # curated third-party skills by name
-  ./install.sh 3rdparty/mattpocock/skills/engineering/tdd   # an undeclared one, by path
+  ./install.sh handoff teach --both   # third-party skills, by name
+  ./install.sh 3rdparty/mattpocock/skills/engineering/tdd   # one the manifest omits, by path
   ./install.sh --project --both       # into ./.agents/skills and ./.claude/skills
   ./install.sh --uninstall --both
 EOF
@@ -78,8 +78,8 @@ EOF
 # and ignored so a foreign skill can't shadow a first-party one.
 #
 # DECLARED holds every third-party src a manifest lists (one dir per line),
-# even one that lost a name clash and so isn't in REGISTRY — such skills are
-# curated, not "undeclared", and discovery must not re-offer them by path.
+# even one that lost a name clash and so isn't in REGISTRY. Path discovery
+# checks DECLARED so a manifest-listed skill is never re-offered by path.
 
 REGISTRY=""
 DECLARED=""
@@ -164,9 +164,9 @@ vendor_label() {
 }
 
 is_declared_src() {
-  # True if an absolute third-party src dir is declared by a manifest — even if
-  # it lost a name clash and so never entered REGISTRY. Checked against DECLARED
-  # (not REGISTRY) so a shadowed-but-curated skill isn't re-offered as undeclared.
+  # True if an absolute third-party src dir is listed by a manifest — even if
+  # it lost a name clash and so never entered REGISTRY (hence DECLARED, not
+  # REGISTRY).
   local target="$1" line
   while IFS= read -r line; do
     [ "$line" = "$target" ] && return 0
@@ -175,9 +175,9 @@ is_declared_src() {
 }
 
 undeclared_paths() {
-  # Repo-relative paths of third-party skills present in the submodules that no
-  # manifest declares — installable, but only by naming their exact path. A
-  # not-checked-out submodule is an empty dir, so `find` simply yields nothing.
+  # Repo-relative paths of third-party skills in the submodules that no manifest
+  # lists — installable only by naming their exact path. A not-checked-out
+  # submodule is an empty dir, so `find` simply yields nothing.
   local sub found dir acc=""
   [ -d "$THIRDPARTY_DIR" ] || { printf ''; return 0; }
   for sub in "$THIRDPARTY_DIR"/*/; do
@@ -195,11 +195,10 @@ undeclared_paths() {
 }
 
 list_skills() {
-  # Two groups: skills installed by default (first-party + curated third-party),
-  # then any other third-party skills discoverable in the submodules — those
-  # aren't installed by default but can be installed by their exact path.
+  # Two groups: the skills installed by default, then any other third-party
+  # skill found in the submodules, which can be installed by its exact path.
   local name src label extra p
-  echo "Installed by default (first-party + curated third-party):"
+  echo "Installed by default:"
   while IFS= read -r name; do
     [ -n "$name" ] || continue
     src="$(resolve_src "$name")"
@@ -214,7 +213,7 @@ list_skills() {
   extra="$(undeclared_paths)"
   if [ -n "$extra" ]; then
     echo ""
-    echo "Other third-party skills (not installed by default; install by exact path):"
+    echo "Other third-party skills (install by exact path):"
     while IFS= read -r p; do
       [ -n "$p" ] || continue
       printf '  %s\n' "$p"
@@ -303,9 +302,9 @@ targets=("${deduped[@]}")
 #
 # Each positional arg is a skill NAME (no slash — resolved against the registry)
 # or a PATH (contains a slash — an exact skill dir under skills/ or 3rdparty/,
-# which is how an undeclared third-party skill gets installed). Resolved into
-# parallel name/src arrays; with no args, the default set is every registered
-# skill. (Uninstall only needs the names.)
+# which installs a third-party skill no manifest lists). Resolved into parallel
+# name/src arrays; with no args, the default set is every registered skill.
+# (Uninstall only needs the names.)
 
 inst_name=()
 inst_src=()
@@ -316,7 +315,7 @@ add_target_by_name() {
   if [ -z "$src" ]; then
     echo "error: no such skill: $name" >&2
     if undeclared_paths | grep -q "/$name$"; then
-      echo "  ('$name' exists as an undeclared third-party skill — install it by its" >&2
+      echo "  ('$name' is a third-party skill no manifest lists — install it by its" >&2
       echo "   exact path; run '$0 --list' to see it)" >&2
     else
       echo "available:" >&2
@@ -350,8 +349,8 @@ add_target_by_path() {
       echo "error: '$arg' is not a skill directory (no SKILL.md at $abs)" >&2
       exit 2
     fi
-    # Don't let an explicit path silently shadow a first-party or curated skill
-    # of the same name — that would repoint its link with no warning.
+    # A path whose name already belongs to an installed skill would repoint that
+    # skill's link; refuse unless --force rather than shadow it silently.
     reg="$(resolve_src "$name")"
     if [ -n "$reg" ] && [ "$reg" != "$abs" ]; then
       if [ "$force" -ne 1 ]; then

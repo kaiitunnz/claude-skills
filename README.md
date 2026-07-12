@@ -72,17 +72,17 @@ Once installed, invoke a skill by slash command (`/<skill-name>`) on agents that
 
 Alongside the first-party skills under [`skills/`](skills/), this repo can vendor skills from other authors as **git submodules** under [`3rdparty/`](3rdparty/). A submodule pins an exact upstream commit, so imports are reproducible and updates are deliberate; the upstream `LICENSE` travels with the code rather than being copied.
 
-Each source is curated by a sibling `3rdparty/<vendor>.manifest` — a plain list of skill directories (relative to the submodule) to expose. Curation is deliberate: upstream repos often ship deprecated or work-in-progress skills we don't want auto-installed, so only manifest-listed skills are installed by default. `install.sh` installs first-party and manifest-listed third-party skills together under their basename; on a name clash the first-party skill wins (and the installer warns).
+Each source has a sibling `3rdparty/<vendor>.manifest` — a plain list of skill directories (relative to the submodule) to install. Curating that list is deliberate: upstream repos often ship deprecated or work-in-progress skills we don't want auto-installed, so only skills the manifest lists are installed by default. `install.sh` installs first-party and listed third-party skills together under their basename; on a name clash the first-party skill wins (and the installer warns).
 
-`./install.sh --list` shows two groups: the skills installed by default (first-party + curated third-party, each with its source), and **every third-party skill in the submodules that no manifest declares**, listed by its exact path. The undeclared ones aren't installed by default, but you can install any of them by naming that path:
+`./install.sh --list` shows two groups: the skills installed by default (each with its source), and **every third-party skill in the submodules that no manifest lists**, shown by its exact path. Those aren't installed by default, but you can install any of them by naming that path:
 
 ```bash
-./install.sh --list                                             # see curated + available-by-path
-./install.sh 3rdparty/mattpocock/skills/engineering/tdd         # install an undeclared skill by path
+./install.sh --list                                             # default skills, then the rest by path
+./install.sh 3rdparty/mattpocock/skills/engineering/tdd         # install one by its path
 ./install.sh --uninstall 3rdparty/mattpocock/skills/engineering/tdd
 ```
 
-A positional argument with no slash is a skill **name** (resolved against the curated set); one containing a slash is a **path** to a skill directory (which must live under `skills/` or `3rdparty/` and contain a `SKILL.md`). If a path's skill name collides with a first-party or curated skill, the installer refuses rather than silently shadowing it — pass `--force` to install it in the other's place. To make an undeclared skill part of the default install for everyone, add its path to the manifest instead.
+A positional argument with no slash is a skill **name**; one containing a slash is a **path** to a skill directory (which must live under `skills/` or `3rdparty/` and contain a `SKILL.md`). If a path's skill name collides with one already installed, `install.sh` refuses rather than silently shadowing it — pass `--force` to install it in the other's place. To install a skill for everyone by default, add its path to the manifest instead.
 
 ### Vendored sources
 
