@@ -72,7 +72,17 @@ Once installed, invoke a skill by slash command (`/<skill-name>`) on agents that
 
 Alongside the first-party skills under [`skills/`](skills/), this repo can vendor skills from other authors as **git submodules** under [`3rdparty/`](3rdparty/). A submodule pins an exact upstream commit, so imports are reproducible and updates are deliberate; the upstream `LICENSE` travels with the code rather than being copied.
 
-Each source is curated by a sibling `3rdparty/<vendor>.manifest` — a plain list of skill directories (relative to the submodule) to expose. Curation is deliberate: upstream repos often ship deprecated or work-in-progress skills we don't want auto-installed, so only manifest-listed skills are surfaced by `install.sh`. `install.sh` installs first-party and manifest-listed third-party skills together under their basename; on a name clash the first-party skill wins (and the installer warns). Run `./install.sh --list` to see every skill and its source.
+Each source is curated by a sibling `3rdparty/<vendor>.manifest` — a plain list of skill directories (relative to the submodule) to expose. Curation is deliberate: upstream repos often ship deprecated or work-in-progress skills we don't want auto-installed, so only manifest-listed skills are installed by default. `install.sh` installs first-party and manifest-listed third-party skills together under their basename; on a name clash the first-party skill wins (and the installer warns).
+
+`./install.sh --list` shows two groups: the skills installed by default (first-party + curated third-party, each with its source), and **every other third-party skill found in the submodules**, listed by its exact path. The undeclared ones aren't installed by default, but you can install any of them by naming that path:
+
+```bash
+./install.sh --list                                             # see curated + available-by-path
+./install.sh 3rdparty/mattpocock/skills/engineering/tdd         # install an undeclared skill by path
+./install.sh --uninstall 3rdparty/mattpocock/skills/engineering/tdd
+```
+
+A positional argument with no slash is a skill **name** (resolved against the curated set); one containing a slash is a **path** to a skill directory (which must live under `skills/` or `3rdparty/` and contain a `SKILL.md`). To make an undeclared skill part of the default install for everyone, add its path to the manifest instead.
 
 ### Vendored sources
 

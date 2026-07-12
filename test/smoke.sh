@@ -143,15 +143,20 @@ cat/gone-skill     # missing SKILL.md; must be warned + skipped, not fatal
 cat/../escape-skill  # `..` escape; must be rejected even though it resolves
 EOF
 
-# --- 9: --list surfaces manifest skills (with source) but not un-listed ones --
+# --- 9: --list groups curated (by name) vs undeclared third-party (by path) ---
 lst="$("$FINST" --list)"
-echo "$lst" | grep -Eq "^nested-skill[[:space:]]+3rdparty/acme$" \
-  || fail "--list did not show nested-skill from 3rdparty/acme"
-echo "$lst" | grep -q "hidden-skill" \
-  && fail "--list showed a skill that is not in the manifest"
-echo "$lst" | grep -Eq "^dup[[:space:]]+skills$" \
+# Curated third-party + first-party appear in the default section (2-sp indent).
+echo "$lst" | grep -Eq "^  nested-skill[[:space:]]+3rdparty/acme$" \
+  || fail "--list did not show curated nested-skill under 3rdparty/acme"
+echo "$lst" | grep -Eq "^  dup[[:space:]]+skills$" \
   || fail "--list did not resolve dup to the first-party source"
-pass "9: --list shows curated third-party skills with source, hides un-listed"
+# An un-manifested skill must NOT be listed as installed-by-default...
+echo "$lst" | grep -Eq "^  hidden-skill[[:space:]]" \
+  && fail "--list showed an un-curated skill as installed-by-default"
+# ...but MUST be offered as installable by its exact path.
+echo "$lst" | grep -q "3rdparty/acme/cat/hidden-skill" \
+  || fail "--list did not offer the un-curated skill by path"
+pass "9: --list groups curated-by-name vs undeclared-by-path"
 
 # --- 10: install links first-party + manifest skills; curation + nesting hold -
 FT="$TMP/fixture-target"
@@ -211,12 +216,36 @@ for mf in "$REPO"/3rdparty/*.manifest; do
     [ -f "$sub/$line/SKILL.md" ] \
       || fail "real '$vendor' manifest lists '$line' but its SKILL.md is missing (typo or upstream reorg?)"
     name="$(basename "$line")"
-    echo "$reallst" | grep -Eq "^$name[[:space:]]+3rdparty/$vendor$" \
+    echo "$reallst" | grep -Eq "^  $name[[:space:]]+3rdparty/$vendor$" \
       || fail "real manifest skill '$name' did not resolve in --list from 3rdparty/$vendor"
   done < "$mf"
   real_validated=1
 done
 [ "$real_validated" -eq 1 ] \
   && pass "12: shipped third-party manifest(s) resolve against their submodules"
+
+# --- 13: an undeclared third-party skill installs/uninstalls by exact path ----
+# hidden-skill is present in the acme source but not in the manifest, so it is
+# only reachable by naming its path.
+PT="$TMP/fixture-bypath"
+"$FINST" 3rdparty/acme/cat/hidden-skill --target "$PT" >/dev/null
+[ -L "$PT/hidden-skill" ] && [ -r "$PT/hidden-skill/SKILL.md" ] \
+  || fail "install-by-path did not link the undeclared skill"
+[ "$(readlink "$PT/hidden-skill")" = "$FIX/3rdparty/acme/cat/hidden-skill" ] \
+  || fail "install-by-path linked the wrong source"
+[ "$(ls "$PT")" = "hidden-skill" ] || fail "install-by-path pulled in more than the named skill"
+"$FINST" --uninstall 3rdparty/acme/cat/hidden-skill --target "$PT" >/dev/null
+[ ! -e "$PT/hidden-skill" ] || fail "uninstall-by-path did not remove the link"
+pass "13: undeclared third-party skill installs and uninstalls by exact path"
+
+# --- 14: install-by-path rejects unsafe / non-skill targets ------------------
+rc=0; "$FINST" /etc/hostname --target "$TMP/rej1" 2>/dev/null || rc=$?
+[ "$rc" -eq 2 ] || fail "a path outside skills/ and 3rdparty/ was not rejected"
+[ ! -e "$TMP/rej1" ] || fail "a rejected path still created its target dir"
+rc=0; "$FINST" 3rdparty/acme/cat --target "$TMP/rej2" 2>/dev/null || rc=$?
+[ "$rc" -eq 2 ] || fail "a path with no SKILL.md was not rejected"
+rc=0; "$FINST" 3rdparty/acme/cat/../escape-skill --target "$TMP/rej3" 2>/dev/null || rc=$?
+[ "$rc" -eq 2 ] || fail "a path containing '..' was not rejected"
+pass "14: install-by-path rejects outside-repo, non-skill, and '..' paths"
 
 echo "ALL SMOKE ASSERTIONS PASSED ($expected first-party skills + third-party fixture)"

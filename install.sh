@@ -29,13 +29,19 @@ TAB="$(printf '\t')"
 
 usage() {
   cat <<'EOF'
-Usage: ./install.sh [options] [skill...]
+Usage: ./install.sh [options] [skill|path...]
 
 Symlink skills from this repo into one or more skill directories.
-With no skill names, all skills (first-party + curated third-party) are installed.
+With no arguments, all skills (first-party + curated third-party) are installed.
+
+A positional argument is either a skill NAME (installs that skill) or a PATH
+containing a slash (installs the skill directory at that exact path — use this
+to install a third-party skill that no manifest declares; see --list).
 
 First-party skills live under skills/. Third-party skills come from git
 submodules under 3rdparty/, curated by 3rdparty/<vendor>.manifest files.
+--list shows the curated skills plus any other third-party skills you can
+install by path.
 
 Targets (combined; default is ~/.agents/skills when none is given):
   --target DIR    Install into DIR (repeatable).
@@ -58,7 +64,8 @@ Examples:
   ./install.sh                        # all skills -> ~/.agents/skills
   ./install.sh --both                 # all skills -> ~/.agents/skills and ~/.claude/skills
   ./install.sh ship make-commits --claude
-  ./install.sh handoff teach --both   # third-party skills by name
+  ./install.sh handoff teach --both   # curated third-party skills by name
+  ./install.sh 3rdparty/mattpocock/skills/engineering/tdd   # an undeclared one, by path
   ./install.sh --project --both       # into ./.agents/skills and ./.claude/skills
   ./install.sh --uninstall --both
 EOF
@@ -144,19 +151,67 @@ all_names() {
   printf '%s' "$acc" | sort
 }
 
+# "3rdparty/<vendor>" label for an absolute src dir under THIRDPARTY_DIR.
+vendor_label() {
+  printf '3rdparty/%s' "$(printf '%s' "${1#"$THIRDPARTY_DIR"/}" | cut -d/ -f1)"
+}
+
+src_registered() {
+  # True if an absolute src dir is already in the registry (first-party or
+  # a manifest-declared third-party skill).
+  local target="$1" n p
+  while IFS="$TAB" read -r n p; do
+    [ "$p" = "$target" ] && return 0
+  done <<< "$REGISTRY"
+  return 1
+}
+
+undeclared_paths() {
+  # Repo-relative paths of third-party skills present in the submodules that no
+  # manifest declares — installable, but only by naming their exact path. A
+  # not-checked-out submodule is an empty dir, so `find` simply yields nothing.
+  local sub found dir acc=""
+  [ -d "$THIRDPARTY_DIR" ] || { printf ''; return 0; }
+  for sub in "$THIRDPARTY_DIR"/*/; do
+    sub="${sub%/}"
+    [ -d "$sub" ] || continue
+    while IFS= read -r found; do
+      [ -n "$found" ] || continue
+      dir="$(dirname "$found")"
+      src_registered "$dir" && continue
+      acc="${acc}${dir#"$SCRIPT_DIR"/}
+"
+    done <<< "$(find "$sub" -name .git -prune -o -type f -name SKILL.md -print 2>/dev/null)"
+  done
+  printf '%s' "$acc" | sort
+}
+
 list_skills() {
-  # name + source root label, aligned, sorted by name.
-  local name src label
+  # Two groups: skills installed by default (first-party + curated third-party),
+  # then any other third-party skills discoverable in the submodules — those
+  # aren't installed by default but can be installed by their exact path.
+  local name src label extra p
+  echo "Installed by default (first-party + curated third-party):"
   while IFS= read -r name; do
     [ -n "$name" ] || continue
     src="$(resolve_src "$name")"
     case "$src" in
       "$SKILLS_DIR"/*) label="skills" ;;
-      "$THIRDPARTY_DIR"/*) label="3rdparty/$(printf '%s' "${src#"$THIRDPARTY_DIR"/}" | cut -d/ -f1)" ;;
+      "$THIRDPARTY_DIR"/*) label="$(vendor_label "$src")" ;;
       *) label="?" ;;
     esac
-    printf '%-26s %s\n' "$name" "$label"
+    printf '  %-26s %s\n' "$name" "$label"
   done <<< "$(all_names)"
+
+  extra="$(undeclared_paths)"
+  if [ -n "$extra" ]; then
+    echo ""
+    echo "Other third-party skills (not installed by default; install by exact path):"
+    while IFS= read -r p; do
+      [ -n "$p" ] || continue
+      printf '  %s\n' "$p"
+    done <<< "$extra"
+  fi
   return 0
 }
 
@@ -236,25 +291,73 @@ for t in "${targets[@]}"; do
 done
 targets=("${deduped[@]}")
 
-# --- resolve skills ----------------------------------------------------------
+# --- resolve what to act on --------------------------------------------------
+#
+# Each positional arg is a skill NAME (no slash — resolved against the registry)
+# or a PATH (contains a slash — an exact skill dir under skills/ or 3rdparty/,
+# which is how an undeclared third-party skill gets installed). Resolved into
+# parallel name/src arrays; with no args, the default set is every registered
+# skill. (Uninstall only needs the names.)
+
+inst_name=()
+inst_src=()
+
+add_target_by_name() {
+  local name="$1" src
+  src="$(resolve_src "$name")"
+  if [ -z "$src" ]; then
+    echo "error: no such skill: $name" >&2
+    if undeclared_paths | grep -q "/$name$"; then
+      echo "  ('$name' exists as an undeclared third-party skill — install it by its" >&2
+      echo "   exact path; run '$0 --list' to see it)" >&2
+    else
+      echo "available:" >&2
+      list_skills >&2
+    fi
+    exit 2
+  fi
+  inst_name+=("$name")
+  inst_src+=("$src")
+}
+
+add_target_by_path() {
+  local arg="$1" abs
+  case "$arg" in
+    /*) abs="$arg" ;;
+    *)  abs="$SCRIPT_DIR/$arg" ;;
+  esac
+  abs="${abs%/}"
+  case "/$abs/" in
+    */../*) echo "error: path '$arg' contains '..'" >&2; exit 2 ;;
+  esac
+  case "$abs" in
+    "$SKILLS_DIR"/*|"$THIRDPARTY_DIR"/*) : ;;
+    *) echo "error: path '$arg' is outside skills/ and 3rdparty/ — refusing to install" >&2; exit 2 ;;
+  esac
+  if [ ! -f "$abs/SKILL.md" ]; then
+    echo "error: '$arg' is not a skill directory (no SKILL.md at $abs)" >&2
+    exit 2
+  fi
+  inst_name+=("$(basename "$abs")")
+  inst_src+=("$abs")
+}
 
 if [ "${#skills[@]}" -eq 0 ]; then
-  # All registered skills. read-loop keeps this bash-3.2 safe (no mapfile).
+  # Default set: every registered skill. read-loop keeps this bash-3.2 safe.
   while IFS= read -r name; do
-    skills+=("$name")
-  done < <(all_names)
+    [ -n "$name" ] || continue
+    add_target_by_name "$name"
+  done <<< "$(all_names)"
 else
-  for name in "${skills[@]}"; do
-    if [ -z "$(resolve_src "$name")" ]; then
-      echo "error: no such skill: $name" >&2
-      echo "available:" >&2
-      list_skills | sed 's/^/  /' >&2
-      exit 2
-    fi
+  for arg in "${skills[@]}"; do
+    case "$arg" in
+      */*) add_target_by_path "$arg" ;;
+      *)   add_target_by_name "$arg" ;;
+    esac
   done
 fi
 
-if [ "${#skills[@]}" -eq 0 ]; then
+if [ "${#inst_name[@]}" -eq 0 ]; then
   echo "error: no skills found (looked under $SKILLS_DIR and $THIRDPARTY_DIR)" >&2
   exit 1
 fi
@@ -264,10 +367,8 @@ fi
 collisions=0
 
 do_install_one() {
-  local name="$1" target="$2"
-  local src dst
-  src="$(resolve_src "$name")"
-  dst="$target/$name"
+  local name="$1" src="$2" target="$3"
+  local dst="$target/$name"
 
   if [ -L "$dst" ]; then
     local cur
@@ -354,8 +455,10 @@ do_uninstall_one() {
 for target in "${targets[@]}"; do
   if [ "$uninstall" -eq 1 ]; then
     echo "Uninstalling from $target"
-    for name in "${skills[@]}"; do
-      do_uninstall_one "$name" "$target"
+    i=0
+    while [ "$i" -lt "${#inst_name[@]}" ]; do
+      do_uninstall_one "${inst_name[$i]}" "$target"
+      i=$((i+1))
     done
   else
     # Create the target only for a real install.
@@ -363,8 +466,10 @@ for target in "${targets[@]}"; do
       mkdir -p "$target"
     fi
     echo "Installing into $target"
-    for name in "${skills[@]}"; do
-      do_install_one "$name" "$target"
+    i=0
+    while [ "$i" -lt "${#inst_name[@]}" ]; do
+      do_install_one "${inst_name[$i]}" "${inst_src[$i]}" "$target"
+      i=$((i+1))
     done
   fi
 done
