@@ -10,7 +10,11 @@
 # paths here (see `ls 3rdparty/mattpocock/skills/*/`).
 
 skills/engineering/setup-matt-pocock-skills
+skills/engineering/research
+skills/engineering/wizard
 skills/productivity/handoff
 skills/productivity/teach
 skills/productivity/grill-me
 skills/productivity/grilling
+skills/productivity/wait-what
+skills/productivity/writing-for-agents
