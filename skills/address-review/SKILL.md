@@ -88,7 +88,7 @@ At the end of the draft, list the files you modified:
 
 ## Step 6 — Final report
 
-End the response with the draft replies + the modified-files list. Nothing else. The user reads it, posts the reply themselves, and runs `/make-commits`.
+End the response with the draft replies + the modified-files list. Nothing else — which bounds your *output*, not the caller's pipeline. Standalone, the user reads it, posts the reply themselves, and runs `/make-commits`; when an orchestrator (`/loop-revise`, `/babysit-prs`) invoked this skill, hand control back to it rather than ending the turn.
 
 ## Guardrails
 
