@@ -96,7 +96,7 @@ Then list the files you modified:
     
     Run `/make-commits` to split these into logical commits. For flakes, run `gh run rerun <id>`.
 
-Nothing else after that — which bounds your *output*, not the caller's pipeline. When an orchestrator invoked this skill (`/babysit-prs` does, mid-sweep), hand control back to it rather than ending the turn.
+Nothing else after that — which bounds your *output*, not the caller's pipeline. When another skill invoked you rather than the user directly, hand control back to it rather than ending the turn.
 
 ## Guardrails
 

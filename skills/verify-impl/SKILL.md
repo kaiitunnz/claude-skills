@@ -69,7 +69,7 @@ Verdict: RED — lint + tests failing.
 
 When everything passes, keep it short but still state e2e: `Verdict: GREEN — N tests passed, lint/types/format clean; e2e N passed.` — or `; e2e not run — excluded from gate` when it wasn't run.
 
-Do **not** start fixing findings — that's the user's call (and `address-ci-failures` / a follow-up edit pass is the place for it). Stop *fixing*, not the caller's pipeline: the verdict is a **gate result, not a completion**, so when an orchestrator invoked this skill, hand control back to it. GREEN means the gate passed, not that the work is finished.
+Do **not** start fixing findings — that's the user's call (and `address-ci-failures` / a follow-up edit pass is the place for it). Stop *fixing*, not the caller's pipeline: the verdict is a **gate result, not a completion**, so when another skill invoked you rather than the user directly, hand control back to it. GREEN means the gate passed, not that the work is finished.
 
 ## Routing
 
@@ -88,5 +88,5 @@ Adding support for a new language means adding one `references/<lang>.md` and a 
 - **Run all checks, then report once.** Don't bail at the first failure — collect every result into one verdict.
 - **Ground the verdict in real output.** Every pass/fail claim comes from a command that actually ran; never infer green from "it looks fine."
 - **A stale environment is its own failure mode.** Re-sync when the lockfile or manifest moved ahead of the environment; never report an environment mismatch as a code defect.
-- **Green is a gate, not an endpoint.** Under an orchestrator, hand control back rather than closing out the work.
+- **Green is a gate, not an endpoint.** When another skill invoked you, hand control back rather than closing out the work.
 - **Stay in the verify lane.** This is static checks + tests. It doesn't launch the app (built-in `verify`), commit (`make-commits`), or push.

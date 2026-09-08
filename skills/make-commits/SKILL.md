@@ -114,7 +114,7 @@ When all commits are in, output:
       ...
     Working tree: <clean | "<file>" still untracked>
 
-No further commentary — which bounds your *output*, not the caller's pipeline. When an orchestrator invoked this skill, hand control back to it rather than ending the turn.
+No further commentary — which bounds your *output*, not the caller's pipeline. When another skill invoked you rather than the user directly, hand control back to it rather than ending the turn.
 
 ## Guardrails
 

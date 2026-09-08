@@ -123,7 +123,7 @@ Rules for the output:
 
 If `gh pr checkout` switched branches, end the review by telling the user the current branch and how to switch back (e.g. "Currently on `pr-branch`. `git switch <original>` to return."). Do not switch back automatically — the user may want to run tests or inspect locally.
 
-**Unless a caller invoked you.** When this skill runs inside an orchestrator or a subagent, the worktree isn't yours to leave moved — the caller resumes in it and will not expect a different branch. Restore the branch recorded in step 1 before returning, and say that you did.
+**Unless a caller invoked you.** When another skill or a subagent invoked you rather than the user directly, the worktree isn't yours to leave moved — the caller resumes in it and will not expect a different branch. Restore the branch recorded in step 1 before returning, and say that you did.
 
 ## Guardrails
 

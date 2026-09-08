@@ -66,4 +66,4 @@ If the branch addresses a GitHub issue, link it. Use `Addresses #N` (or whatever
 
 ## Output
 
-End with the PR URL on its own line. No summary, no "happy reviewing" footer. The one permitted addition is a single line naming any deliberate departure from the repo's observed style and what prompted it. This bounds your *output*, not the caller's pipeline — when an orchestrator invoked this skill, hand control back to it rather than ending the turn.
+End with the PR URL on its own line. No summary, no "happy reviewing" footer. The one permitted addition is a single line naming any deliberate departure from the repo's observed style and what prompted it. This bounds your *output*, not the caller's pipeline — when another skill invoked you rather than the user directly, hand control back to it rather than ending the turn.
