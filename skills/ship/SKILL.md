@@ -9,7 +9,7 @@ Drive a ready branch through the whole release path: **verify → commit → pus
 
 Invoking `/ship` authorizes the full pipeline (including the push and the PR) and the cold-context review subagent step 6 relies on — a default that withholds subagents "unless the user asks" is satisfied by the invocation itself. Do **not** re-confirm each step. Do stop and surface whenever a step fails, is ambiguous, or wants to widen scope — the gates below are where the pipeline halts.
 
-**Never end a turn mid-pipeline.** You are done only once you have emitted the step 7 report with its endpoint, or an explicit halt with its reason. A sub-skill returning green is a gate result, not an endpoint; if you are about to stop and can name neither, you are still mid-pipeline, so continue.
+**Never end a turn mid-pipeline.** You are done only once you have emitted the step 7 report with its endpoint, or an explicit halt naming its reason — the **Surface every halt** guardrail lists the usual kinds. A sub-skill returning green is a gate result, not an endpoint; if you are about to stop and can name neither, you are still mid-pipeline, so continue.
 
 When a caller invoked this skill and stated the branch and base it already established, take those as given in step 1 rather than re-deriving them. A verify result it hands down **does not substitute for step 2**: that gate runs against the tree you are about to push, and a caller like `/loop-dev` verifies mid-implementation with commits landing after it. Skip step 2 only when the worktree is provably unchanged since that green run.
 

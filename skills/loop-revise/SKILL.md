@@ -15,7 +15,7 @@ Take a change that's already committed (and usually pushed as a PR) and drive it
 
 Invoking `/loop-revise` (directly or via `/ship`) authorizes the whole loop, including the commits and pushes that addressing findings produces, **and the step 1 review subagent** — a default that withholds subagents "unless the user asks" is satisfied by the invocation itself. It authorizes that review, not delegation generally; an instruction forbidding subagents outright still wins and is reported per step 1. Do **not** re-confirm each round. Do halt and surface whenever a step fails, is ambiguous, or wants to widen scope beyond resolving the findings.
 
-**Never end a turn mid-loop.** You are done only once you have emitted the step 4 report, or an explicit halt with its reason. A green verify is a gate result, not an endpoint; if you are about to stop and can name neither, you are still mid-loop, so continue.
+**Never end a turn mid-loop.** You are done only once you have emitted the step 4 report, or an explicit halt naming its reason — step 4 lists the kinds. A green verify is a gate result, not an endpoint; if you are about to stop and can name neither, you are still mid-loop, so continue.
 
 ## Review profile
 
