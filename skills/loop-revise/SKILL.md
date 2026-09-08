@@ -17,24 +17,22 @@ Invoking `/loop-revise` (directly or via `/ship`) authorizes the whole loop, inc
 
 ## Review profile
 
-`lean` and `thorough` are **reserved directive tokens** — recognize either anywhere in `ARGUMENTS`, case-insensitively, and strip it before interpreting the remainder as a target. They select how hard the convergence loop works:
+`lean` and `thorough` are **reserved directive tokens** — recognize either anywhere in `ARGUMENTS`, case-insensitively, and strip it before interpreting the remainder as a target. This table is the whole rule; the steps below refer back to it rather than restating it.
 
 | | `lean` | `thorough` |
 | --- | --- | --- |
-| Converged when | the first review returns no material findings | first clean review, or two consecutive rounds surface nothing new |
-| Re-review after addressing | only when the round changed code beyond a formatter reflow | every round |
-| Cold-context subagent, where the harness has one | one, for the initial review | one per review round |
+| Converged when | first review with no material findings | that, or two consecutive rounds surfacing nothing new |
+| Re-review after addressing | only after a change beyond a formatter reflow | every round |
+| Cold subagent, where available | one, for the initial review | one per round |
 | Closing full verify | only if code changed since the last full green | always |
 
-Resolve the profile in this order: an explicit token wins; otherwise `lean` if the running model is Claude Opus 5 or newer; otherwise `thorough`. If you cannot determine the running model, use `thorough`.
-
-`lean` reduces re-verification of your own verification. It does **not** weaken a gate: thrashing still halts, a red verify still halts, and findings are still addressed or explicitly pushed back under both profiles.
+An explicit token wins; otherwise `lean` on Claude Opus 5 or newer, `thorough` otherwise — including when the model can't be determined.
 
 ## Step 1 — Critical self-review
 
 Review the target **critically and with fresh eyes**. The goal is to catch what the author (you) is biased not to see.
 
-- **Prefer a subagent.** If your harness can spawn a sub-agent with its own context, delegate the review to one so it reads the diff cold rather than reusing your justifications. Instruct it to run `/review-pr <N>` (or `/review-diff <target> <base>` when the PR isn't reviewable yet) and return the structured verdict + findings. If no subagent capability exists, do the review inline. Under `thorough`, spawn a fresh one for each review round; under `lean`, only the initial review gets a subagent and later rounds re-review inline — one cold read is what removes author bias, and repeating it does not remove it twice.
+- **Prefer a subagent.** If your harness can spawn a sub-agent with its own context, delegate the review to one so it reads the diff cold rather than reusing your justifications. Instruct it to run `/review-pr <N>` (or `/review-diff <target> <base>` when the PR isn't reviewable yet) and return the structured verdict + findings. If no subagent capability exists, do the review inline. The profile sets how many rounds get one — one cold read is what removes author bias, and repeating it doesn't remove it twice.
 - Use `/review-pr` (PR is open) when available; fall back to `/review-diff <target> <base>` for a local range review. If neither skill is installed, review inline against correctness, project coding conventions, and other concrete issues — no padding, no invented findings.
 
 Capture the verdict and the per-finding list verbatim.
@@ -52,15 +50,15 @@ After changes are made:
 
 1. **Re-verify** the affected scope (relevant tests/lint, or the full suite if changes were broad) with `/verify-impl` or the repo's verify command — forwarding the `e2e` directive when it was given; fix and repeat until it passes before committing.
 2. **Commit** the fixes with `/make-commits` (or inline following its principles) and **push** — this updates the open PR when there is one.
-3. **Re-review** (step 1) to confirm the findings are resolved and nothing regressed. Under `thorough`, do this every round. Under `lean`, do it only when the round changed code beyond a pure formatter reflow — a round that produced no substantive change has nothing new to review.
+3. **Re-review** (step 1) to confirm the findings are resolved and nothing regressed, per the profile's re-review rule — a round that changed nothing substantive has nothing new to review.
 
-Loop until the review **converges** — no hard round cap. Under `thorough`, **converged** means a review returns no material findings, or two consecutive rounds surface nothing new. Under `lean`, the first review with no material findings ends the loop. Each round must fold in the previous round's findings, so the loop only continues while reviews keep surfacing genuinely new material problems. Genuine disagreements (push-backs) don't count as unresolved; record them and move on. If the loop is **thrashing** — a resolved finding reappears, or reviews contradict each other — **halt and surface that** rather than looping through it, under either profile.
+Loop until the review **converges** — no hard round cap; the profile's convergence rule says when. Each round must fold in the previous round's findings, so the loop only continues while reviews keep surfacing genuinely new material problems. Genuine disagreements (push-backs) don't count as unresolved; record them and move on. If the loop is **thrashing** — a resolved finding reappears, or reviews contradict each other — **halt and surface that** rather than looping through it, under either profile.
 
 ## Step 3 — Final verify
 
 After the loop settles, run the project's **full verify** as a closing hard gate — pre-commit / lint / type-check **and** the full test suite (`/verify-impl` or the repo's verify command, forwarding the `e2e` directive when it was given), since each address round only re-checked its own scope. Green → proceed to the report; red → halt and surface it verbatim (fold in and re-run a pure formatter reflow, but anything more is the user's call).
 
-Under `thorough`, run it unconditionally. Under `lean`, run it only when code changed since the last full green — a loop that addressed no findings is already covered by the gate that preceded it, and re-running it proves nothing. Either way the report states which full verify the verdict rests on.
+Run it per the profile's closing-verify rule: a loop that changed nothing is already covered by the gate before it, and re-running proves nothing.
 
 ## Step 4 — Report
 
@@ -71,7 +69,7 @@ End with a compact summary:
       Findings: <N addressed, M pushed back>
       Final verify: <commands> — passed (e2e: <ran N passed / not run — reason>)
 
-When `lean` skipped the closing run, the `Final verify` line names the gate the verdict actually rests on — e.g. `Final verify: <commands> — passed at round 2; no code changed since`. A green verdict never rests on a verify that didn't happen.
+When the closing run was skipped, the `Final verify` line names the gate the verdict rests on instead — `passed at round 2; no code changed since`. A green verdict never rests on a verify that didn't happen.
 
 If the loop halted (thrashing reviews, red final verify), report where and why instead — what's resolved, what isn't, and the exact next action the user needs to take.
 

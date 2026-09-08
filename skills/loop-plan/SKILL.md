@@ -9,16 +9,14 @@ Turn a request into a **converged, written plan** — one that a fresh reviewer 
 
 ## Review profile
 
-`lean` and `thorough` are **reserved directive tokens** selecting how hard the step 4 convergence loop works. Because `ARGUMENTS` here is free prose, recognize either only as the **first or last** whitespace-separated token, case-insensitively, and strip it before treating the remainder as the request — anywhere else it is part of the request ("make the build lean" plans a build change).
+`lean` and `thorough` are **reserved directive tokens** setting how much of the step 4 loop repeats. Because `ARGUMENTS` here is free prose, recognize either only as the **first or last** whitespace-separated token, case-insensitively, and strip it before treating the remainder as the request — anywhere else it's part of the request ("make the build lean" plans a build change).
 
 | | `lean` | `thorough` |
 | --- | --- | --- |
-| Converged when | the first review returns no material issues | first clean review, or two consecutive rounds surface nothing new |
-| Re-review after revising | only when the revision changed the plan's substance | every round |
+| Converged when | first review with no material issues | that, or two consecutive rounds surfacing nothing new |
+| Re-review after revising | only after a substantive revision | every round |
 
-Resolve the profile in this order: an explicit token wins; otherwise `lean` if the running model is Claude Opus 5 or newer; otherwise `thorough`. If you cannot determine the running model, use `thorough`.
-
-Where the harness can spawn one, the review runs in a fresh subagent under **both** profiles — a cold read of the plan file is the mechanism, not the dial. `lean` cuts repeated confirmation of an already-stable plan; it never skips the review or drops a finding.
+An explicit token wins; otherwise `lean` on Claude Opus 5 or newer, `thorough` otherwise — including when the model can't be determined. The review itself is a cold read of the plan file under both profiles; that's the mechanism, not the dial.
 
 ## Step 1 — Understand the request
 
@@ -43,9 +41,9 @@ The plan states: the goals from step 1, the deliverable type, the ordered steps,
 Loop until the plan converges — no hard round cap:
 
 1. **Review the plan — prefer a subagent.** If your harness can spawn a sub-agent with its own context, spawn a fresh one, point it at the plan file, and ask it to find *material* problems only — wrong approach, missed goals, unhandled cases, ordering hazards, unrealistic steps, risky assumptions. Explicitly tell it to skip nitpicks and style. Have it return a verdict plus a concrete findings list. If no subagent capability exists, review inline against the plan file **re-read from disk**, judging only what it actually says rather than what you remember intending — that gap is what the review exists to catch.
-2. **Revise.** Fold every material finding into the plan file. Push back (in the plan's notes) on findings you disagree with, with reasoning — don't silently drop them. Under `lean`, a revision that changed nothing substantive (a wording fix, a push-back recorded without a plan change) doesn't earn another review round — the loop ends there.
+2. **Revise.** Fold every material finding into the plan file. Push back (in the plan's notes) on findings you disagree with, with reasoning — don't silently drop them. A revision that changed nothing substantive (a wording fix, a push-back recorded without a plan change) earns another round only per the profile's re-review rule.
 
-**Converged** under `thorough` when a review returns no material issues, or two consecutive rounds surface nothing new; under `lean`, the first review with no material issues ends it. Each round must fold in the previous round's findings, so the loop only continues while reviews are still finding real problems — a stable plan ends it. If the loop is **thrashing** — a resolved finding reappears, or reviews contradict each other — halt and surface that rather than looping through it, under either profile.
+**Converged** per the profile's convergence rule. Each round must fold in the previous round's findings, so the loop only continues while reviews are still finding real problems — a stable plan ends it. If the loop is **thrashing** — a resolved finding reappears, or reviews contradict each other — halt and surface that rather than looping through it, under either profile.
 
 ## Step 5 — Report
 

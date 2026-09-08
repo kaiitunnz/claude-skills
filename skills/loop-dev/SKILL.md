@@ -11,9 +11,9 @@ Invoking `/loop-dev` authorizes the whole pipeline — planning, branching, comm
 
 ## Review profile
 
-`lean` and `thorough` are **reserved directive tokens** selecting how hard this pipeline's two convergence loops work — `/loop-plan`'s (step 1) and `/loop-revise`'s (step 4, via `/ship`) — plus the document revise loop in step 3. Because `ARGUMENTS` here is free prose, recognize either only as the **first or last** whitespace-separated token, case-insensitively, and strip it before treating the remainder as the request; anywhere else it is part of the request.
+`lean` and `thorough` are **reserved directive tokens** setting how much this pipeline's convergence loops repeat — `/loop-plan`'s, the step 3 document loop, and `/loop-revise`'s (via `/ship`). Because `ARGUMENTS` here is free prose, recognize either only as the **first or last** whitespace-separated token, case-insensitively, and strip it before treating the remainder as the request.
 
-Resolve it once, at the top of the pipeline — an explicit token wins; otherwise `lean` if the running model is Claude Opus 5 or newer; otherwise `thorough` (including when you cannot determine the model) — then forward the resolved profile explicitly to `/loop-plan` and `/ship` so every stage runs the same one. See `/loop-revise`'s **Review profile** section for what each profile changes.
+Resolve it once — an explicit token wins; otherwise `lean` on Claude Opus 5 or newer, `thorough` otherwise — then forward it to `/loop-plan` and `/ship` so every stage runs the same one. `/loop-revise`'s **Review profile** table defines what each changes.
 
 ## Step 1 — Plan
 
@@ -34,7 +34,7 @@ Commit **along the way** with `/make-commits` at each logical unit — don't acc
 Then loop by deliverable type:
 
 - **Code:** after each meaningful chunk, run `/verify-impl` (or the repo's own verify command). On failure, fix and re-verify. Repeat until green. Reaching step 4 with red checks is not allowed. **When the plan/spec calls for end-to-end verification — or the repo already gates on an e2e suite — pass the `e2e` directive to `/verify-impl`** so the gate exercises it.
-- **Document:** revise against the plan's review bar — prefer a fresh-context subagent to critique the draft, then revise; where the harness can't spawn one, critique inline against the draft re-read from disk. No test gate applies. Under `thorough`, keep critiquing until two consecutive rounds surface nothing new; under `lean`, the first critique that returns no material findings ends the loop, and a revision that changed nothing substantive doesn't earn another round. **Git-tracked by default** — commit drafts with `/make-commits` like any other work. If the document location has no git repo initialized, adapt: keep the draft/revise loop, skip the commit and branch steps, and report the file path as the endpoint.
+- **Document:** revise against the plan's review bar — prefer a fresh-context subagent to critique the draft, then revise; where the harness can't spawn one, critique inline against the draft re-read from disk. No test gate applies; the loop converges per the resolved profile. **Git-tracked by default** — commit drafts with `/make-commits` like any other work. If the document location has no git repo initialized, adapt: keep the draft/revise loop, skip the commit and branch steps, and report the file path as the endpoint.
 
 Bound the fix→re-verify loop sensibly (a few rounds); if checks stay red for a reason you can't resolve, halt and surface the failure verbatim.
 
