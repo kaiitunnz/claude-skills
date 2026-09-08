@@ -81,9 +81,11 @@ After the rebase completes, run the project's verify command. Look it up in `AGE
 - Look for documented commands like `uv run pre-commit run --all-files`, `npm run lint`, `npm test`, `cargo test`, `pytest`.
 - If multiple are documented (e.g. backend + frontend), run them in parallel where they don't share state.
 
+**Re-sync before verifying if the replay moved a lockfile or manifest.** A rebase is the canonical lockfile-mover, whether or not one conflicted in step 3. Run the project's install command (`uv sync`, `npm install`, `cargo build`) first — a stale environment produces failures indistinguishable from a real regression, and here that mistake becomes a causal claim about the rebase.
+
 If a verify command fails:
 
-- Compare to the same command on the pre-rebase HEAD (`git stash`, `git checkout @{1}`, run again, `git checkout -`, `git stash pop`) — if it failed there too, the rebase didn't cause it. State that.
+- Compare to the same command on the pre-rebase HEAD (`git stash`, `git checkout @{1}`, **re-sync**, run again, `git checkout -`, **re-sync**, `git stash pop`) — if it failed there too, the rebase didn't cause it. State that. Checking out the old commit moves the lockfile back, so both halves of the comparison need their own sync; two runs against one stale environment prove nothing.
 - If it passed pre-rebase but fails post-rebase, the rebase introduced a regression. Surface the failure verbatim and stop. Don't try to fix; that's the user's call.
 
 If no verify command is documented anywhere, say so and stop: "No verify command documented. Suggest running tests manually."
