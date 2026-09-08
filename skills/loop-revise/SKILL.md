@@ -83,4 +83,4 @@ If the loop halted (thrashing reviews, red final verify), report where and why i
 - **The profile tunes effort, not rigor.** `lean` cuts repeated self-verification; it never skips a review, drops a finding, or ships past a red gate.
 - **Green at the end.** The final verify is a hard gate — a red result halts and surfaces, it does not get reported as shipped.
 - **Don't widen scope.** If addressing a finding tempts a refactor nobody asked for, surface it and ask.
-- **Delegate, don't re-implement.** `/review-pr`, `/review-diff`, `/address-review`, `/verify-impl` are authoritative for their steps when installed.
+- **Delegate, don't re-implement.** `/review-pr`, `/review-diff`, `/address-review`, `/verify-impl` are authoritative for their steps when installed — and name in the report any you fell back from, so the reader knows which discipline actually ran.

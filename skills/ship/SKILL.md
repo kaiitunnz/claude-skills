@@ -97,5 +97,5 @@ If anything stopped the pipeline early, report where and why instead — what pa
 - **Don't duplicate a PR.** Reuse the existing open PR for the branch.
 - **Don't suppress your own review.** Findings are addressed or explicitly pushed back with reasoning — never silently dropped to reach "done".
 - **Don't widen scope.** If addressing a finding tempts a refactor nobody asked for, surface it and ask.
-- **Delegate, don't re-implement.** When a sub-skill is installed, call it and trust its output; only fall back to inline work when it's absent.
+- **Delegate, don't re-implement.** When a sub-skill is installed, call it and trust its output; only fall back to inline work when it's absent — and name in the report any sub-skill you fell back from, so the reader knows which discipline actually ran.
 - **Surface every halt.** Author mismatch, push rejection, unresolved findings, ambiguous state — stop and tell the user the exact next step rather than guessing.
