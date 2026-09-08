@@ -7,6 +7,8 @@ Turn a request into a **converged, written plan** — one that a fresh reviewer 
 
 `ARGUMENTS` is the request: a bug fix, new feature, redesign, paper draft, or anything else. If empty, use the conversation's current request. If there is none, stop and ask what to plan.
 
+Invoking `/loop-plan` authorizes the exploration subagents in step 2 and the review subagent in step 4 — a default that withholds subagents "unless the user asks" is satisfied by the invocation itself. It authorizes those, not delegation generally; an instruction forbidding subagents outright still wins and is reported in step 5.
+
 ## Review profile
 
 `lean` and `thorough` are **reserved directive tokens** setting how much of the step 4 loop repeats. Because `ARGUMENTS` here is free prose, recognize either only as the **first or last** whitespace-separated token, case-insensitively, and strip it before treating the remainder as the request — anywhere else it's part of the request ("make the build lean" plans a build change).
@@ -26,7 +28,7 @@ An explicit token wins; otherwise `lean` on Claude Opus 5 or newer, `thorough` o
 
 ## Step 2 — Explore
 
-Investigate as far as the request needs — no further. For anything beyond a couple of files, delegate broad search to `Explore` / `general-purpose` subagents and keep their conclusions, not the file dumps. Resolve unknowns by reading code, not by guessing; if a fact is unknowable from the repo and blocks the plan, that is a halt-and-ask.
+Investigate as far as the request needs — no further. For anything beyond a couple of files, delegate broad search to `Explore` / `general-purpose` subagents and keep their conclusions, not the file dumps. If you can't delegate — no subagent capability, or a standing instruction against it — search inline, keep the breadth tighter to fit one context, and name the constraint in your step 5 report. Resolve unknowns by reading code, not by guessing; if a fact is unknowable from the repo and blocks the plan, that is a halt-and-ask.
 
 ## Step 3 — Draft the plan to a file
 
@@ -40,14 +42,14 @@ The plan states: the goals from step 1, the deliverable type, the ordered steps,
 
 Loop until the plan converges — no hard round cap:
 
-1. **Review the plan — prefer a subagent.** If your harness can spawn a sub-agent with its own context, spawn a fresh one, point it at the plan file, and ask it to find *material* problems only — wrong approach, missed goals, unhandled cases, ordering hazards, unrealistic steps, risky assumptions. Explicitly tell it to skip nitpicks and style. Have it return a verdict plus a concrete findings list. If no subagent capability exists, review inline against the plan file **re-read from disk**, judging only what it actually says rather than what you remember intending — that gap is what the review exists to catch.
+1. **Review the plan — prefer a subagent.** If your harness can spawn a sub-agent with its own context, spawn a fresh one, point it at the plan file, and ask it to find *material* problems only — wrong approach, missed goals, unhandled cases, ordering hazards, unrealistic steps, risky assumptions. Explicitly tell it to skip nitpicks and style. Have it return a verdict plus a concrete findings list. If you can't delegate — no subagent capability, or a standing instruction against it — review inline against the plan file **re-read from disk**, judging only what it actually says rather than what you remember intending, and name the reason in your step 5 report.
 2. **Revise.** Fold every material finding into the plan file. Push back (in the plan's notes) on findings you disagree with, with reasoning — don't silently drop them. A revision that changed nothing substantive (a wording fix, a push-back recorded without a plan change) earns another round only per the profile's re-review rule.
 
 **Converged** per the profile's convergence rule. Each round must fold in the previous round's findings, so the loop only continues while reviews are still finding real problems — a stable plan ends it. If the loop is **thrashing** — a resolved finding reappears, or reviews contradict each other — halt and surface that rather than looping through it, under either profile.
 
 ## Step 5 — Report
 
-Report back compactly: the plan file path, a short summary of the approach, the chosen execution organization (single-context vs. workqueue vs. Waypoint crew), and any open concerns. When invoked standalone this is the final output; when invoked by `/loop-dev`, this is the handoff — return the plan path and proceed.
+Report back compactly: the plan file path, a short summary of the approach, the chosen execution organization (single-context vs. workqueue vs. Waypoint crew), any preferred path you couldn't take and why, and any open concerns. When invoked standalone this is the final output; when invoked by `/loop-dev`, this is the handoff — return the plan path and proceed.
 
 ## Guardrails
 

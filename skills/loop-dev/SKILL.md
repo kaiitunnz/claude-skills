@@ -7,11 +7,13 @@ Take a request from words to a shipped deliverable, autonomously. This is an **o
 
 `ARGUMENTS` is the request (any type), plus optional `draft` to pass through to PR creation. If the request is empty, use the conversation's current one; if there is none, stop and ask.
 
-Invoking `/loop-dev` authorizes the whole pipeline — planning, branching, committing, verifying, and shipping. Do **not** re-confirm each step. Do halt and surface whenever a step fails, is ambiguous, or wants to widen scope beyond the request.
+Invoking `/loop-dev` authorizes the whole pipeline — planning, branching, committing, verifying, and shipping — and the subagents its planning, exploration, and document-critique steps define; a default that withholds subagents "unless the user asks" is satisfied by the invocation itself. Do **not** re-confirm each step. Do halt and surface whenever a step fails, is ambiguous, or wants to widen scope beyond the request.
+
+**Never end a turn mid-pipeline.** You are done only once you have emitted an endpoint — a PR URL, a branch name, or a file path — or an explicit halt naming its reason: a gate that stayed red, an assumption the plan rested on turning out false, an error you can't recover from, or a decision only the user can make. A sub-skill returning green is a gate result, not an endpoint; if you are about to stop and can name neither, you are still mid-pipeline, so continue.
 
 ## Review profile
 
-`lean` and `thorough` are **reserved directive tokens** setting how much this pipeline's convergence loops repeat — `/loop-plan`'s, the step 3 document loop, and `/loop-revise`'s (via `/ship`). Because `ARGUMENTS` here is free prose, recognize either only as the **first or last** whitespace-separated token, case-insensitively, and strip it before treating the remainder as the request.
+`lean` and `thorough` are **reserved directive tokens** setting how much this pipeline's convergence loops repeat — `/loop-plan`'s, the step 3 document loop, and `/loop-revise`'s (via `/ship`). Because `ARGUMENTS` here is free prose, strip `lean` / `thorough` from either **end**, case-insensitively and **repeatedly**, until neither end is one — matching mid-sentence would mangle a request like "make the build lean". `draft` is stripped only from the **trailing** end, and only when what remains still reads as a complete request: `/loop-dev draft an RFC for X` is a document request, not a draft-PR directive. When the reading is genuinely ambiguous ("write the RFC draft"), keep the token in the request and say so in the step 5 report — a missed `draft` costs a non-draft PR, a mangled request costs the whole run.
 
 Resolve it once — an explicit token wins; otherwise `lean` on Claude Opus 5 or newer, `thorough` otherwise — then forward it to `/loop-plan` and `/ship` so every stage runs the same one. `/loop-revise`'s **Review profile** table defines what each changes.
 
@@ -34,13 +36,13 @@ Commit **along the way** with `/make-commits` at each logical unit — don't acc
 Then loop by deliverable type:
 
 - **Code:** after each meaningful chunk, run `/verify-impl` (or the repo's own verify command). On failure, fix and re-verify. Repeat until green. Reaching step 4 with red checks is not allowed. **When the plan/spec calls for end-to-end verification — or the repo already gates on an e2e suite — pass the `e2e` directive to `/verify-impl`** so the gate exercises it.
-- **Document:** revise against the plan's review bar — prefer a fresh-context subagent to critique the draft, then revise; where the harness can't spawn one, critique inline against the draft re-read from disk. No test gate applies; the loop converges per the resolved profile. **Git-tracked by default** — commit drafts with `/make-commits` like any other work. If the document location has no git repo initialized, adapt: keep the draft/revise loop, skip the commit and branch steps, and report the file path as the endpoint.
+- **Document:** revise against the plan's review bar — prefer a fresh-context subagent to critique the draft, then revise; where you can't delegate (no capability, or a standing instruction against it), critique inline against the draft re-read from disk and say so in the final report. No test gate applies; the loop converges per the resolved profile. **Git-tracked by default** — commit drafts with `/make-commits` like any other work. If the document location has no git repo initialized, adapt: keep the draft/revise loop, skip the commit and branch steps, and report the file path as the endpoint.
 
 Bound the fix→re-verify loop sensibly (a few rounds); if checks stay red for a reason you can't resolve, halt and surface the failure verbatim.
 
 ## Step 4 — Ship
 
-Run `/ship` (passing `draft` through when given, the `e2e` directive when the plan called for e2e, and the resolved review profile). It drives verify → commit → push → open PR → revise (self-review → address findings → final verify, via `/loop-revise`) — forwarding `e2e` and the profile down that chain.
+Run `/ship` (passing `draft` through when given, the `e2e` directive when the plan called for e2e, and the resolved review profile), and state in the invocation prose — not as `ARGUMENTS`, which takes directive tokens only — the branch, base, and last verify result you already established, so it doesn't re-derive them. It drives verify → commit → push → open PR → revise (self-review → address findings → final verify, via `/loop-revise`) — forwarding `e2e` and the profile down that chain.
 
 **Adjust the final deliverable to fit the work** — this is the one judgment call the skill makes autonomously:
 
@@ -53,12 +55,12 @@ Pick the fitting endpoint from repo context; don't ask unless the choice is genu
 
 ## Step 5 — Final report
 
-End with a compact summary: the plan path, the branch, what was implemented, the verify result, and the endpoint (PR URL / local branch / workspace). **Surface `/verify-impl`'s e2e status** — ran (result) or not run (reason) — so a gap in end-to-end coverage is visible rather than assumed. If the pipeline halted early, report where, why, and the exact next action.
+End with a compact summary: the plan path, the branch, what was implemented, the verify result, the endpoint (PR URL / local branch / workspace), and any preferred path you couldn't take, with the reason. **Surface `/verify-impl`'s e2e status** — ran (result) or not run (reason) — so a gap in end-to-end coverage is visible rather than assumed. If the pipeline halted early, report where, why, and the exact next action.
 
 ## Guardrails
 
 - **Autonomous, halt on breakage.** No per-step confirmation; stop and surface any failure, unresolved ambiguity, or scope creep.
-- **Delegate, don't re-implement.** `/loop-plan`, `/waypoint-workqueue`, `/waypoint-crew`, `/make-commits`, `/verify-impl`, `/ship` (which itself delegates the revision phase to `/loop-revise`) are authoritative for their steps.
+- **Delegate, don't re-implement.** `/loop-plan`, `/waypoint-workqueue`, `/waypoint-crew`, `/make-commits`, `/verify-impl`, `/ship` (which itself delegates the revision phase to `/loop-revise`) are authoritative for their steps; name any you fell back from in the step 5 report.
 - **Green before ship.** Code reaches `/ship` only with passing checks.
 - **Never build on the default branch.**
 - **Right-size the endpoint.** PR vs. local branch vs. leave-as-is follows the work, not a fixed default.

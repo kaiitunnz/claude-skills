@@ -84,7 +84,7 @@ Within the agreed scope and budget, repeat autonomously — do not ask permissio
 Stop when the target is reached, the budget is exhausted, the stagnation condition is hit, the user interrupts, or the harness becomes unrecoverably broken. Then:
 
 1. Run the best candidate through the representative final evaluation; repeat measurements to confirm a noisy result.
-2. Run the repo's full verification with `/verify-impl` when available, otherwise the repo's own full check procedure.
+2. Run the repo's full verification with `/verify-impl` when available, otherwise the repo's own full check procedure — say which in the report.
 3. Confirm protected evaluation inputs and harness logic were **not** changed.
 4. When many accepted changes accumulated, drop any that no longer contribute where that can be tested cheaply.
 

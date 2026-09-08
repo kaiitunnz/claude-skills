@@ -47,7 +47,7 @@ For a subdirectory/workspace project, resolve the right root and scope the run t
 Run them in cheap-to-expensive order so the fastest failures surface first, and run **all** of them even if an early one fails — a single combined report beats stopping at the first red. The exact commands and runner come from the declared command (Step 2) or the language reference.
 
 - `--check` / report-only modes only — never let a formatter rewrite files as a side effect of verifying. A tool that reports it *would* reformat is a failure to report, not to silently apply.
-- If a tool is missing from the environment, sync dependencies once (the way the language reference specifies) and retry before reporting it as a failure.
+- **Sync when the environment may be behind the code.** If a tool is missing, sync dependencies once and retry before reporting a failure. Do the same *before the first run* on either observable trigger: the lockfile or manifest is newer than the installed environment (compare its mtime against the venv / `node_modules` / target directory), or this session rebased, switched branches, or bumped a dependency. Use the language reference's **non-mutating** install (`uv sync --locked`, `npm ci`) — verifying must never rewrite a lockfile, and an install that refuses because the manifest moved ahead of the lockfile is a red to surface, not a lockfile to regenerate. A stale environment produces failures indistinguishable from code defects, and reporting one as the other is worse than not running.
 - Some first-run steps bootstrap their environment and are slow (e.g. pre-commit installing hooks); that's expected, not a hang.
 
 **End-to-end / integration tests.** The default test run above is whatever the project runs by default — which often *excludes* a slow or service-dependent e2e suite. Run e2e **in addition** when either: (a) the caller explicitly asks (the `e2e` directive, or a `/loop-dev` spec that calls for it) — this **overrides** a default exclusion; or (b) the project's own gate already includes e2e. A suite the project deliberately excludes is **not** force-run without an explicit ask. Invoke e2e the project's own way (its marker, dir, or dedicated command); don't fake it. If e2e can't run because required services or fixtures aren't available, report that — it counts as **not run**, not as a failure. A failure of an e2e run that *did* execute is RED like any other test.
@@ -69,7 +69,7 @@ Verdict: RED — lint + tests failing.
 
 When everything passes, keep it short but still state e2e: `Verdict: GREEN — N tests passed, lint/types/format clean; e2e N passed.` — or `; e2e not run — excluded from gate` when it wasn't run.
 
-Do **not** start fixing findings. Report and stop — fixing is the user's call (and `address-ci-failures` / a follow-up edit pass is the place for it).
+Do **not** start fixing findings — that's the user's call (and `address-ci-failures` / a follow-up edit pass is the place for it). Stop *fixing*, not the caller's pipeline: the verdict is a **gate result, not a completion**, so when another skill invoked you rather than the user directly, hand control back to it. GREEN means the gate passed, not that the work is finished.
 
 ## Routing
 
@@ -87,4 +87,6 @@ Adding support for a new language means adding one `references/<lang>.md` and a 
 - **Surface e2e coverage.** Always report whether e2e ran; a GREEN verdict must never imply e2e passed when it wasn't run.
 - **Run all checks, then report once.** Don't bail at the first failure — collect every result into one verdict.
 - **Ground the verdict in real output.** Every pass/fail claim comes from a command that actually ran; never infer green from "it looks fine."
+- **A stale environment is its own failure mode.** Re-sync when the lockfile or manifest moved ahead of the environment; never report an environment mismatch as a code defect.
+- **Green is a gate, not an endpoint.** When another skill invoked you, hand control back rather than closing out the work.
 - **Stay in the verify lane.** This is static checks + tests. It doesn't launch the app (built-in `verify`), commit (`make-commits`), or push.

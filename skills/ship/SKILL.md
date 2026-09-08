@@ -5,9 +5,13 @@ description: Take a finished branch all the way out — verify (pre-commit + ful
 
 Drive a ready branch through the whole release path: **verify → commit → push → open PR → revise (self-review + address findings + final verify) → done**. This is an orchestrator. Each step has a dedicated skill; when that skill is installed, invoke it and treat it as authoritative for its step. When it isn't, do the step inline following the principles named here. Never duplicate a delegated skill's work — call it, read its output, move on.
 
-`ARGUMENTS` is optional and accepts three directives, in any order, all case-insensitive: `draft`, passed through to PR creation; `e2e`, which runs the end-to-end suite in the verify gate (step 2) and is forwarded to `/loop-revise` (step 6); and `lean` or `thorough`, forwarded to `/loop-revise` (step 6), whose **Review profile** table defines them. Anything else is an error — surface it and stop.
+`ARGUMENTS` is optional and accepts three directives, in any order, all case-insensitive: `draft`, passed through to PR creation; `e2e`, which runs the end-to-end suite in the verify gate (step 2) and is forwarded to `/loop-revise` (step 6); and `lean` or `thorough`, forwarded to `/loop-revise` (step 6), whose **Review profile** table defines them. Anything else is an error — surface it and stop. That rule governs *directive tokens*; state a caller hands down in the invocation prose (branch, base, its last verify result) is context, not an argument, and is not an error.
 
-Invoking `/ship` authorizes the full pipeline (including the push and the PR). Do **not** re-confirm each step. Do stop and surface whenever a step fails, is ambiguous, or wants to widen scope — the gates below are where the pipeline halts.
+Invoking `/ship` authorizes the full pipeline (including the push and the PR) and the cold-context review subagent step 6 relies on — a default that withholds subagents "unless the user asks" is satisfied by the invocation itself. Do **not** re-confirm each step. Do stop and surface whenever a step fails, is ambiguous, or wants to widen scope — the gates below are where the pipeline halts.
+
+**Never end a turn mid-pipeline.** You are done only once you have emitted the step 7 report with its endpoint, or an explicit halt naming its reason — the **Surface every halt** guardrail lists the usual kinds. A sub-skill returning green is a gate result, not an endpoint; if you are about to stop and can name neither, you are still mid-pipeline, so continue.
+
+When a caller invoked this skill and stated the branch and base it already established, take those as given in step 1 rather than re-deriving them. A verify result it hands down **does not substitute for step 2**: that gate runs against the tree you are about to push, and a caller like `/loop-dev` verifies mid-implementation with commits landing after it. Skip step 2 only when the worktree is provably unchanged since that green run.
 
 ## Step 1 — Preflight
 
@@ -69,7 +73,7 @@ Capture the PR URL — the self-review and final report need it.
 
 Run `/loop-revise` on the open PR (pass the PR number/URL from step 5, plus the `e2e` directive when it was given and the `lean` / `thorough` directive when one was given). It reviews what you just shipped with fresh eyes, drives every finding to resolution — re-verifying, committing, and pushing each round, looping until the review converges — and closes with a final full-verify gate. Read its report: the final verdict, the findings addressed/pushed back, and the final verify result feed step 7.
 
-If `/loop-revise` isn't installed, do its work inline following the principles it names: critically self-review (prefer a cold-context subagent running `/review-pr`, else `/review-diff <branch> <base>`, else inline); address findings with `/address-review` (fix what's right, push back with reasoning on what isn't, don't widen scope); re-verify, commit, and push each round; then run a final full verify as a hard gate before continuing. Loop until the review converges rather than to a fixed round count, and surface thrashing. Resolve the profile as `/loop-revise` would — an explicit directive, else `lean` on Claude Opus 5 or newer, else `thorough` — and apply it: `thorough` re-reviews every round and always runs the closing verify; `lean` converges on the first clean review, re-reviews only after a substantive change, and runs the closing verify only when code changed since the last full green.
+If `/loop-revise` isn't installed, do its work inline following the principles it names: critically self-review (prefer a cold-context subagent running `/review-pr`, else `/review-diff <branch> <base>`, else inline — name which); address findings with `/address-review` (fix what's right, push back with reasoning on what isn't, don't widen scope); re-verify, commit, and push each round; then run a final full verify as a hard gate before continuing. Loop until the review converges rather than to a fixed round count, and surface thrashing. Resolve the profile as `/loop-revise` would — an explicit directive, else `lean` on Claude Opus 5 or newer, else `thorough` — and apply it: `thorough` re-reviews every round and always runs the closing verify; `lean` converges on the first clean review, re-reviews only after a substantive change, and runs the closing verify only when code changed since the last full green.
 
 ## Step 7 — Final report
 
@@ -80,6 +84,7 @@ End with a compact pipeline summary:
       Commits: <N> (<short-hash> <subject> …)
       PR:      <url>  [draft]
       Review:  <final verdict> (<profile>); <N findings addressed, M pushed back>
+      Fallbacks: <none | which preferred path you couldn't take, and why>
 
     <PR URL on its own line>
 
@@ -93,5 +98,5 @@ If anything stopped the pipeline early, report where and why instead — what pa
 - **Don't duplicate a PR.** Reuse the existing open PR for the branch.
 - **Don't suppress your own review.** Findings are addressed or explicitly pushed back with reasoning — never silently dropped to reach "done".
 - **Don't widen scope.** If addressing a finding tempts a refactor nobody asked for, surface it and ask.
-- **Delegate, don't re-implement.** When a sub-skill is installed, call it and trust its output; only fall back to inline work when it's absent.
+- **Delegate, don't re-implement.** When a sub-skill is installed, call it and trust its output; only fall back to inline work when it's absent, and record that on the report's `Fallbacks` line.
 - **Surface every halt.** Author mismatch, push rejection, unresolved findings, ambiguous state — stop and tell the user the exact next step rather than guessing.
