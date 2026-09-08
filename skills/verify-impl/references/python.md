@@ -51,4 +51,4 @@ When e2e is triggered (Step 3), run it the project's own way — `uv run pytest 
 ## Notes
 
 - First `pre-commit run` of a session bootstraps hook environments (slow, not a hang).
-- Missing tool, or an environment behind the lockfile → `uv sync --frozen` once, then retry before reporting a failure. Frozen so verifying never rewrites `uv.lock`. If it refuses because `pyproject.toml` has moved ahead of the lockfile, that is a **red to surface** — the project's lockfile is out of date — not a lockfile for this skill to regenerate.
+- Missing tool, or an environment behind the lockfile → `uv sync --locked` once, then retry before reporting a failure. `--locked` asserts `uv.lock` will remain unchanged, so verifying never rewrites it — and errors when `pyproject.toml` has moved ahead, which is a **red to surface** (the project's lockfile is out of date), not a lockfile for this skill to regenerate. Don't substitute `--frozen`: it installs from the lockfile without checking it, which silently gives you the stale environment this bullet exists to catch.
