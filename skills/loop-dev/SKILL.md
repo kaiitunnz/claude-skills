@@ -9,6 +9,8 @@ Take a request from words to a shipped deliverable, autonomously. This is an **o
 
 Invoking `/loop-dev` authorizes the whole pipeline — planning, branching, committing, verifying, and shipping. Do **not** re-confirm each step. Do halt and surface whenever a step fails, is ambiguous, or wants to widen scope beyond the request.
 
+**Never end a turn mid-pipeline.** You are done only once you have emitted an endpoint — a PR URL, a branch name, or a file path — or an explicit halt with its reason. A sub-skill returning green is a gate result, not an endpoint; if you are about to stop and can name neither, you are still mid-pipeline, so continue.
+
 ## Review profile
 
 `lean` and `thorough` are **reserved directive tokens** setting how much this pipeline's convergence loops repeat — `/loop-plan`'s, the step 3 document loop, and `/loop-revise`'s (via `/ship`). Because `ARGUMENTS` here is free prose, recognize either only as the **first or last** whitespace-separated token, case-insensitively, and strip it before treating the remainder as the request.
@@ -34,13 +36,13 @@ Commit **along the way** with `/make-commits` at each logical unit — don't acc
 Then loop by deliverable type:
 
 - **Code:** after each meaningful chunk, run `/verify-impl` (or the repo's own verify command). On failure, fix and re-verify. Repeat until green. Reaching step 4 with red checks is not allowed. **When the plan/spec calls for end-to-end verification — or the repo already gates on an e2e suite — pass the `e2e` directive to `/verify-impl`** so the gate exercises it.
-- **Document:** revise against the plan's review bar — prefer a fresh-context subagent to critique the draft, then revise; where the harness can't spawn one, critique inline against the draft re-read from disk. No test gate applies; the loop converges per the resolved profile. **Git-tracked by default** — commit drafts with `/make-commits` like any other work. If the document location has no git repo initialized, adapt: keep the draft/revise loop, skip the commit and branch steps, and report the file path as the endpoint.
+- **Document:** revise against the plan's review bar — prefer a fresh-context subagent to critique the draft, then revise; where you can't delegate (no capability, or a standing instruction against it), critique inline against the draft re-read from disk and say so in the final report. No test gate applies; the loop converges per the resolved profile. **Git-tracked by default** — commit drafts with `/make-commits` like any other work. If the document location has no git repo initialized, adapt: keep the draft/revise loop, skip the commit and branch steps, and report the file path as the endpoint.
 
 Bound the fix→re-verify loop sensibly (a few rounds); if checks stay red for a reason you can't resolve, halt and surface the failure verbatim.
 
 ## Step 4 — Ship
 
-Run `/ship` (passing `draft` through when given, the `e2e` directive when the plan called for e2e, and the resolved review profile). It drives verify → commit → push → open PR → revise (self-review → address findings → final verify, via `/loop-revise`) — forwarding `e2e` and the profile down that chain.
+Run `/ship` (passing `draft` through when given, the `e2e` directive when the plan called for e2e, and the resolved review profile), and hand it the state you already established — branch, base, and the last verify result — so it doesn't re-derive them. It drives verify → commit → push → open PR → revise (self-review → address findings → final verify, via `/loop-revise`) — forwarding `e2e` and the profile down that chain.
 
 **Adjust the final deliverable to fit the work** — this is the one judgment call the skill makes autonomously:
 

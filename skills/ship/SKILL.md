@@ -9,6 +9,10 @@ Drive a ready branch through the whole release path: **verify → commit → pus
 
 Invoking `/ship` authorizes the full pipeline (including the push and the PR). Do **not** re-confirm each step. Do stop and surface whenever a step fails, is ambiguous, or wants to widen scope — the gates below are where the pipeline halts.
 
+**Never end a turn mid-pipeline.** You are done only once you have emitted the step 7 report with its endpoint, or an explicit halt with its reason. A sub-skill returning green is a gate result, not an endpoint; if you are about to stop and can name neither, you are still mid-pipeline, so continue.
+
+When `/loop-dev` invoked this skill, it has just established the branch, the base, and a verify result. Take those as given rather than re-deriving them in step 1; run only the preflight checks it did not cover.
+
 ## Step 1 — Preflight
 
 Run in parallel:

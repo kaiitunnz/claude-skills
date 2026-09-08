@@ -15,6 +15,8 @@ Take a change that's already committed (and usually pushed as a PR) and drive it
 
 Invoking `/loop-revise` (directly or via `/ship`) authorizes the whole loop, including the commits and pushes that addressing findings produces. Do **not** re-confirm each round. Do halt and surface whenever a step fails, is ambiguous, or wants to widen scope beyond resolving the findings.
 
+**Never end a turn mid-loop.** You are done only once you have emitted the step 4 report, or an explicit halt with its reason. A green verify is a gate result, not an endpoint; if you are about to stop and can name neither, you are still mid-loop, so continue.
+
 ## Review profile
 
 `lean` and `thorough` are **reserved directive tokens** — recognize either anywhere in `ARGUMENTS`, case-insensitively, and strip it before interpreting the remainder as a target. This table is the whole rule; the steps below refer back to it rather than restating it.
@@ -32,7 +34,7 @@ An explicit token wins; otherwise `lean` on Claude Opus 5 or newer, `thorough` o
 
 Review the target **critically and with fresh eyes**. The goal is to catch what the author (you) is biased not to see.
 
-- **Prefer a subagent.** If your harness can spawn a sub-agent with its own context, delegate the review to one so it reads the diff cold rather than reusing your justifications. Instruct it to run `/review-pr <N>` (or `/review-diff <target> <base>` when the PR isn't reviewable yet) and return the structured verdict + findings. If no subagent capability exists, do the review inline. The profile sets how many rounds get one — one cold read is what removes author bias, and repeating it doesn't remove it twice.
+- **Prefer a subagent.** If your harness can spawn a sub-agent with its own context, delegate the review to one so it reads the diff cold rather than reusing your justifications. Instruct it to run `/review-pr <N>` (or `/review-diff <target> <base>` when the PR isn't reviewable yet) and return the structured verdict + findings. If you can't delegate — the harness has no subagents, or a standing instruction forbids them — review inline and **say which in your report**; a permission conflict is the user's to resolve, not yours to settle silently. The profile sets how many rounds get one — one cold read is what removes author bias, and repeating it doesn't remove it twice.
 - Use `/review-pr` (PR is open) when available; fall back to `/review-diff <target> <base>` for a local range review. If neither skill is installed, review inline against correctness, project coding conventions, and other concrete issues — no padding, no invented findings.
 
 Capture the verdict and the per-finding list verbatim.
@@ -75,7 +77,7 @@ If the loop halted (thrashing reviews, red final verify), report where and why i
 
 ## Guardrails
 
-- **Fresh eyes.** Prefer a cold-context subagent for the review so you critique the diff, not your own rationalizations; review inline when the harness can't spawn one.
+- **Fresh eyes.** Prefer a cold-context subagent for the review so you critique the diff, not your own rationalizations. Review inline when you can't, and name the reason — a fallback taken silently looks identical to one never needed.
 - **Don't suppress your own review.** Findings are addressed or explicitly pushed back with reasoning — never silently dropped to reach "done".
 - **Converge, don't cap.** The loop ends when a review stops finding material problems, not on a fixed round count. Surface thrashing — a resolved finding reappearing, or reviews contradicting each other — rather than looping through it.
 - **The profile tunes effort, not rigor.** `lean` cuts repeated self-verification; it never skips a review, drops a finding, or ships past a red gate.
