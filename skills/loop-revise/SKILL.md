@@ -34,7 +34,7 @@ An explicit token wins; otherwise `lean` on Claude Opus 5 or newer, `thorough` o
 
 Review the target **critically and with fresh eyes**. The goal is to catch what the author (you) is biased not to see.
 
-- **Prefer a subagent.** If your harness can spawn a sub-agent with its own context, delegate the review to one so it reads the diff cold rather than reusing your justifications. Instruct it to run `/review-pr <N>` (or `/review-diff <target> <base>` when the PR isn't reviewable yet) and return the structured verdict + findings. If you can't delegate — the harness has no subagents, or a standing instruction forbids them — review inline and **say which in your report**; a permission conflict is the user's to resolve, not yours to settle silently. The profile sets how many rounds get one — one cold read is what removes author bias, and repeating it doesn't remove it twice.
+- **Prefer a subagent.** If your harness can spawn a sub-agent with its own context, delegate the review to one so it reads the diff cold rather than reusing your justifications. Instruct it to run `/review-pr <N>` (or `/review-diff <target> <base>` when the PR isn't reviewable yet) and return the structured verdict + findings. If you can't delegate — the harness has no subagents, or a standing instruction forbids them — review inline and record which on the report's `Fallbacks` line; a permission conflict is the user's to resolve, not yours to settle silently. The profile sets how many rounds get one — one cold read is what removes author bias, and repeating it doesn't remove it twice.
 - Use `/review-pr` (PR is open) when available; fall back to `/review-diff <target> <base>` for a local range review. If neither skill is installed, review inline against correctness, project coding conventions, and other concrete issues — no padding, no invented findings.
 
 Capture the verdict and the per-finding list verbatim.
@@ -70,6 +70,7 @@ End with a compact summary:
       Review: <final verdict>
       Findings: <N addressed, M pushed back>
       Final verify: <commands> — passed (e2e: <ran N passed / not run — reason>)
+      Fallbacks: <none | which preferred path you couldn't take, and why>
 
 When the closing run was skipped, the `Final verify` line names the gate the verdict rests on instead — `passed at round 2; no code changed since`. A green verdict never rests on a verify that didn't happen.
 
@@ -77,10 +78,10 @@ If the loop halted (thrashing reviews, red final verify), report where and why i
 
 ## Guardrails
 
-- **Fresh eyes.** Prefer a cold-context subagent for the review so you critique the diff, not your own rationalizations. Review inline when you can't, and name the reason — a fallback taken silently looks identical to one never needed.
+- **Fresh eyes.** Prefer a cold-context subagent for the review so you critique the diff, not your own rationalizations — a fallback taken silently looks identical to one never needed.
 - **Don't suppress your own review.** Findings are addressed or explicitly pushed back with reasoning — never silently dropped to reach "done".
 - **Converge, don't cap.** The loop ends when a review stops finding material problems, not on a fixed round count. Surface thrashing — a resolved finding reappearing, or reviews contradicting each other — rather than looping through it.
 - **The profile tunes effort, not rigor.** `lean` cuts repeated self-verification; it never skips a review, drops a finding, or ships past a red gate.
 - **Green at the end.** The final verify is a hard gate — a red result halts and surfaces, it does not get reported as shipped.
 - **Don't widen scope.** If addressing a finding tempts a refactor nobody asked for, surface it and ask.
-- **Delegate, don't re-implement.** `/review-pr`, `/review-diff`, `/address-review`, `/verify-impl` are authoritative for their steps when installed — and name in the report any you fell back from, so the reader knows which discipline actually ran.
+- **Delegate, don't re-implement.** `/review-pr`, `/review-diff`, `/address-review`, `/verify-impl` are authoritative for their steps when installed; any you fell back from goes on the report's `Fallbacks` line.

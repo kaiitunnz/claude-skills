@@ -28,7 +28,7 @@ An explicit token wins; otherwise `lean` on Claude Opus 5 or newer, `thorough` o
 
 ## Step 2 — Explore
 
-Investigate as far as the request needs — no further. For anything beyond a couple of files, delegate broad search to `Explore` / `general-purpose` subagents and keep their conclusions, not the file dumps. Resolve unknowns by reading code, not by guessing; if a fact is unknowable from the repo and blocks the plan, that is a halt-and-ask.
+Investigate as far as the request needs — no further. For anything beyond a couple of files, delegate broad search to `Explore` / `general-purpose` subagents and keep their conclusions, not the file dumps. If you can't delegate — no subagent capability, or a standing instruction against it — search inline, keep the breadth tighter to fit one context, and name the constraint in your step 5 report. Resolve unknowns by reading code, not by guessing; if a fact is unknowable from the repo and blocks the plan, that is a halt-and-ask.
 
 ## Step 3 — Draft the plan to a file
 
@@ -49,7 +49,7 @@ Loop until the plan converges — no hard round cap:
 
 ## Step 5 — Report
 
-Report back compactly: the plan file path, a short summary of the approach, the chosen execution organization (single-context vs. workqueue vs. Waypoint crew), and any open concerns. When invoked standalone this is the final output; when invoked by `/loop-dev`, this is the handoff — return the plan path and proceed.
+Report back compactly: the plan file path, a short summary of the approach, the chosen execution organization (single-context vs. workqueue vs. Waypoint crew), any preferred path you couldn't take and why, and any open concerns. When invoked standalone this is the final output; when invoked by `/loop-dev`, this is the handoff — return the plan path and proceed.
 
 ## Guardrails
 

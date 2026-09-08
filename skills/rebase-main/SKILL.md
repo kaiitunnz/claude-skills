@@ -81,7 +81,7 @@ After the rebase completes, run the project's verify command. Look it up in `AGE
 - Look for documented commands like `uv run pre-commit run --all-files`, `npm run lint`, `npm test`, `cargo test`, `pytest`.
 - If multiple are documented (e.g. backend + frontend), run them in parallel where they don't share state.
 
-**Re-sync before verifying if the replay moved a lockfile or manifest.** A rebase is the canonical lockfile-mover, whether or not one conflicted in step 3. Run the project's install command (`uv sync`, `npm install`, `cargo build`) first — a stale environment produces failures indistinguishable from a real regression, and here that mistake becomes a causal claim about the rebase.
+**Re-sync before verifying if the replay moved a lockfile or manifest.** A rebase is the canonical lockfile-mover, whether or not one conflicted in step 3. Run the project's **non-mutating** install first (`uv sync --frozen`, `npm ci`, `cargo fetch`) so the sync doesn't rewrite a lockfile in the tree you just rebased. A stale environment produces failures indistinguishable from a real regression, and here that mistake becomes a causal claim about the rebase.
 
 If a verify command fails:
 

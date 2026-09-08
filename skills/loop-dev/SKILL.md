@@ -13,7 +13,7 @@ Invoking `/loop-dev` authorizes the whole pipeline — planning, branching, comm
 
 ## Review profile
 
-`lean` and `thorough` are **reserved directive tokens** setting how much this pipeline's convergence loops repeat — `/loop-plan`'s, the step 3 document loop, and `/loop-revise`'s (via `/ship`). Because `ARGUMENTS` here is free prose, recognize either only as the **first or last** whitespace-separated token, case-insensitively, and strip it before treating the remainder as the request.
+`lean` and `thorough` are **reserved directive tokens** setting how much this pipeline's convergence loops repeat — `/loop-plan`'s, the step 3 document loop, and `/loop-revise`'s (via `/ship`). Because `ARGUMENTS` here is free prose, strip reserved tokens — `draft`, `lean`, `thorough` — from either **end**, case-insensitively and **repeatedly**, until neither end is one; what remains is the request. Stripping only one token, or matching mid-sentence, would either drop a profile in `<request> lean draft` or mangle a request like "make the build lean".
 
 Resolve it once — an explicit token wins; otherwise `lean` on Claude Opus 5 or newer, `thorough` otherwise — then forward it to `/loop-plan` and `/ship` so every stage runs the same one. `/loop-revise`'s **Review profile** table defines what each changes.
 
@@ -42,7 +42,7 @@ Bound the fix→re-verify loop sensibly (a few rounds); if checks stay red for a
 
 ## Step 4 — Ship
 
-Run `/ship` (passing `draft` through when given, the `e2e` directive when the plan called for e2e, and the resolved review profile), and hand it the state you already established — branch, base, and the last verify result — so it doesn't re-derive them. It drives verify → commit → push → open PR → revise (self-review → address findings → final verify, via `/loop-revise`) — forwarding `e2e` and the profile down that chain.
+Run `/ship` (passing `draft` through when given, the `e2e` directive when the plan called for e2e, and the resolved review profile), and state in the invocation prose — not as `ARGUMENTS`, which takes directive tokens only — the branch, base, and last verify result you already established, so it doesn't re-derive them. It drives verify → commit → push → open PR → revise (self-review → address findings → final verify, via `/loop-revise`) — forwarding `e2e` and the profile down that chain.
 
 **Adjust the final deliverable to fit the work** — this is the one judgment call the skill makes autonomously:
 
@@ -55,12 +55,12 @@ Pick the fitting endpoint from repo context; don't ask unless the choice is genu
 
 ## Step 5 — Final report
 
-End with a compact summary: the plan path, the branch, what was implemented, the verify result, and the endpoint (PR URL / local branch / workspace). **Surface `/verify-impl`'s e2e status** — ran (result) or not run (reason) — so a gap in end-to-end coverage is visible rather than assumed. If the pipeline halted early, report where, why, and the exact next action.
+End with a compact summary: the plan path, the branch, what was implemented, the verify result, the endpoint (PR URL / local branch / workspace), and any preferred path you couldn't take, with the reason. **Surface `/verify-impl`'s e2e status** — ran (result) or not run (reason) — so a gap in end-to-end coverage is visible rather than assumed. If the pipeline halted early, report where, why, and the exact next action.
 
 ## Guardrails
 
 - **Autonomous, halt on breakage.** No per-step confirmation; stop and surface any failure, unresolved ambiguity, or scope creep.
-- **Delegate, don't re-implement.** `/loop-plan`, `/waypoint-workqueue`, `/waypoint-crew`, `/make-commits`, `/verify-impl`, `/ship` (which itself delegates the revision phase to `/loop-revise`) are authoritative for their steps.
+- **Delegate, don't re-implement.** `/loop-plan`, `/waypoint-workqueue`, `/waypoint-crew`, `/make-commits`, `/verify-impl`, `/ship` (which itself delegates the revision phase to `/loop-revise`) are authoritative for their steps; name any you fell back from in the step 5 report.
 - **Green before ship.** Code reaches `/ship` only with passing checks.
 - **Never build on the default branch.**
 - **Right-size the endpoint.** PR vs. local branch vs. leave-as-is follows the work, not a fixed default.

@@ -35,7 +35,7 @@ Read carefully and extract:
 - **Test-plan format** — checkbox list of commands? Plain text? Manual steps?
 - **Issue references** — `Addresses #N` vs `Fixes #N`. Default to **`Addresses #N`** (non-auto-closing) unless the project clearly uses `Fixes`.
 
-**When a caller instruction contradicts the observed style, the caller wins.** An explicit "no per-file walkthrough" or "keep the body short" overrides what recent PRs do — the person asking knows something the history doesn't. But say which convention you broke and why, in the one-line note step 4 allows, so the deviation is visible and reversible. Silently splitting the difference is the wrong answer.
+**When a caller instruction contradicts the observed style, the caller wins.** An explicit "no per-file walkthrough" or "keep the body short" overrides what recent PRs do — the person asking knows something the history doesn't. But say which convention you broke and why, in the one-line note the **Output** section allows, so the deviation is visible and reversible. Silently splitting the difference is the wrong answer.
 
 ## Step 3 — Draft the PR
 
@@ -66,4 +66,4 @@ If the branch addresses a GitHub issue, link it. Use `Addresses #N` (or whatever
 
 ## Output
 
-End with the PR URL on its own line. No summary, no "happy reviewing" footer. The one permitted addition is a single line naming any deliberate departure from the repo's observed style and what prompted it.
+End with the PR URL on its own line. No summary, no "happy reviewing" footer. The one permitted addition is a single line naming any deliberate departure from the repo's observed style and what prompted it. This bounds your *output*, not the caller's pipeline — when an orchestrator invoked this skill, hand control back to it rather than ending the turn.

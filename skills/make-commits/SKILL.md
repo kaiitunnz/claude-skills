@@ -50,7 +50,7 @@ Use `git commit -s` for DCO signoff (git generates the trailer from the configur
 Read the diff of changed files (`git diff`, `git diff --cached`, and `git diff` against untracked files individually) to understand scope. Group files into commits by:
 
 - **Concern** — backend vs. frontend; feature code vs. tests vs. docs; refactor vs. new behavior; bugfix vs. polish.
-- **Atomicity** — each commit should stand on its own. Check this mechanically: does any commit reference a module, symbol, or fixture that a *later* commit introduces? If so, reorder or merge them. Don't ship a feature commit whose tests live in a later commit.
+- **Atomicity** — each commit should pass tests on its own where practical. Check it concretely: would every intermediate tree type-check and test — including callers a later commit leaves on an old contract, and references to something a later commit introduces? Where it wouldn't, reorder or merge. Don't ship a feature commit whose tests live in a later commit.
 - **Order** — dependencies before dependents (schema before code that uses it; lib changes before callsites).
 
 Output the plan to the user **before** running any `git add` / `git commit`:
@@ -103,7 +103,7 @@ If a commit fails because a hook made changes (auto-formatters like `black`, `pr
 
 If a hook fails on a check that requires code changes (lint, mypy, typecheck), **always surface and pause**. Don't try to fix lint findings as part of this skill.
 
-**Whole-tree hooks and partial commits.** `pre-commit` stashes unstaged changes before running, so a hook that checks the whole repo (repo-wide `mypy`, `tsc`) sees staged + HEAD *without* the rest of your work. A commit that is fine in the finished tree can fail here on references its dependencies haven't been committed yet. That is a **planning** signal, not a hook problem: reorder so every intermediate tree is self-consistent (step 4's atomicity check catches most of it up front), or merge the commits that depend on each other. Never reach for `--no-verify`, and never move files out of the repo to get a commit through.
+**Whole-tree hooks and partial commits.** `pre-commit` stashes unstaged changes before running, so a hook that checks the whole repo (repo-wide `mypy`, `tsc`) sees staged + HEAD *without* the rest of your work. A commit that is fine in the finished tree can fail here on references its dependencies haven't been committed yet. That is a **planning** signal, not a hook problem: reorder so every intermediate tree is self-consistent — step 4's atomicity check is where to catch this — or merge the commits that depend on each other. Never relocate files to sneak a commit past a hook.
 
 ## Step 7 — Final report
 
@@ -114,7 +114,7 @@ When all commits are in, output:
       ...
     Working tree: <clean | "<file>" still untracked>
 
-No further commentary.
+No further commentary — which bounds your *output*, not the caller's pipeline. When an orchestrator invoked this skill, hand control back to it rather than ending the turn.
 
 ## Guardrails
 
