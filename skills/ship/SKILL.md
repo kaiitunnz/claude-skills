@@ -79,7 +79,7 @@ End with a compact pipeline summary:
       Verify:  <commands> — passed (e2e: <ran N passed / not run — reason>)
       Commits: <N> (<short-hash> <subject> …)
       PR:      <url>  [draft]
-      Review:  <final verdict>; <N findings addressed, M pushed back>
+      Review:  <final verdict> (<profile>); <N findings addressed, M pushed back>
 
     <PR URL on its own line>
 

@@ -66,10 +66,12 @@ Under `thorough`, run it unconditionally. Under `lean`, run it only when code ch
 
 End with a compact summary:
 
-    Revised <target>.
+    Revised <target> (<profile>).
       Review: <final verdict>
       Findings: <N addressed, M pushed back>
       Final verify: <commands> — passed (e2e: <ran N passed / not run — reason>)
+
+When `lean` skipped the closing run, the `Final verify` line names the gate the verdict actually rests on — e.g. `Final verify: <commands> — passed at round 2; no code changed since`. A green verdict never rests on a verify that didn't happen.
 
 If the loop halted (thrashing reviews, red final verify), report where and why instead — what's resolved, what isn't, and the exact next action the user needs to take.
 
