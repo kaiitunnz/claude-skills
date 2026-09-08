@@ -55,6 +55,6 @@ When e2e is triggered (Step 3 of the skill), run it the project's own way — it
 
 ## Notes
 
-- Missing / uninstalled tool → install deps once (`<pm> install`, or `npm ci`), then retry before reporting a failure.
+- Missing / uninstalled tool, or an environment behind the lockfile → install deps once from the lockfile (`npm ci`, `pnpm install --frozen-lockfile`, `yarn install --immutable`, `bun install --frozen-lockfile`), then retry before reporting a failure. Frozen so verifying never rewrites the lockfile. If it refuses because `package.json` has moved ahead of the lockfile, that is a **red to surface** — the project's lockfile is out of date — not a lockfile for this skill to regenerate.
 - `package.json` scripts **are** the project's declared command — prefer them over reconstructing tool invocations.
 - The first Playwright run downloads browsers (slow, not a hang).
