@@ -18,7 +18,7 @@ Turn a request into a **converged, written plan** — one that a fresh reviewer 
 
 Resolve the profile in this order: an explicit token wins; otherwise `lean` if the running model is Claude Opus 5 or newer; otherwise `thorough`. If you cannot determine the running model, use `thorough`.
 
-The review itself runs in a fresh subagent under **both** profiles — a cold read of the plan file is the mechanism, not the dial. `lean` cuts repeated confirmation of an already-stable plan; it never skips the review or drops a finding.
+Where the harness can spawn one, the review runs in a fresh subagent under **both** profiles — a cold read of the plan file is the mechanism, not the dial. `lean` cuts repeated confirmation of an already-stable plan; it never skips the review or drops a finding.
 
 ## Step 1 — Understand the request
 
@@ -42,7 +42,7 @@ The plan states: the goals from step 1, the deliverable type, the ordered steps,
 
 Loop until the plan converges — no hard round cap:
 
-1. **Review in a subagent.** Spawn a fresh subagent, point it at the plan file, and ask it to find *material* problems only — wrong approach, missed goals, unhandled cases, ordering hazards, unrealistic steps, risky assumptions. Explicitly tell it to skip nitpicks and style. Have it return a verdict plus a concrete findings list.
+1. **Review the plan — prefer a subagent.** If your harness can spawn a sub-agent with its own context, spawn a fresh one, point it at the plan file, and ask it to find *material* problems only — wrong approach, missed goals, unhandled cases, ordering hazards, unrealistic steps, risky assumptions. Explicitly tell it to skip nitpicks and style. Have it return a verdict plus a concrete findings list. If no subagent capability exists, review inline against the plan file **re-read from disk**, judging only what it actually says rather than what you remember intending — that gap is what the review exists to catch.
 2. **Revise.** Fold every material finding into the plan file. Push back (in the plan's notes) on findings you disagree with, with reasoning — don't silently drop them. Under `lean`, a revision that changed nothing substantive (a wording fix, a push-back recorded without a plan change) doesn't earn another review round — the loop ends there.
 
 **Converged** under `thorough` when a review returns no material issues, or two consecutive rounds surface nothing new; under `lean`, the first review with no material issues ends it. Each round must fold in the previous round's findings, so the loop only continues while reviews are still finding real problems — a stable plan ends it. If the loop is **thrashing** — a resolved finding reappears, or reviews contradict each other — halt and surface that rather than looping through it, under either profile.
@@ -54,7 +54,7 @@ Report back compactly: the plan file path, a short summary of the approach, the 
 ## Guardrails
 
 - **Autonomous, not silent-on-breakage.** No approval gates, but halt and surface anything genuinely breaking or an ambiguity investigation can't resolve.
-- **The plan is a file.** Never rely on in-context-only plans — the reviewer can't see them.
+- **The plan is a file.** Never rely on in-context-only plans — the reviewer, subagent or not, judges only what's written down.
 - **Material findings only.** Keep the convergence loop from spinning on nitpicks — it converges when reviews stop finding real problems, not on a fixed round count. Surface thrashing rather than looping through it.
 - **The profile tunes effort, not rigor.** `lean` cuts repeated confirmation of a stable plan; it never skips the review or drops a material finding.
 - **Don't over-explore.** Investigate to the depth the plan needs; delegate breadth to subagents.
