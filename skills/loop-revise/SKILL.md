@@ -13,7 +13,7 @@ Take a change that's already committed (and usually pushed as a PR) and drive it
 
 `e2e` is a **reserved directive token**: recognize it anywhere in `ARGUMENTS` and strip it *before* interpreting the remainder as a target — otherwise `<PR> e2e` would mis-parse as a diff range with `base=e2e`. When present, forward `e2e` to `/verify-impl` in both gates below; if it's the only token, fall through to the empty-arg default target.
 
-Invoking `/loop-revise` (directly or via `/ship`) authorizes the whole loop, including the commits and pushes that addressing findings produces. Do **not** re-confirm each round. Do halt and surface whenever a step fails, is ambiguous, or wants to widen scope beyond resolving the findings.
+Invoking `/loop-revise` (directly or via `/ship`) authorizes the whole loop, including the commits and pushes that addressing findings produces, **and the step 1 review subagent** — a default that withholds subagents "unless the user asks" is satisfied by the invocation itself. It authorizes that review, not delegation generally; an instruction forbidding subagents outright still wins and is reported per step 1. Do **not** re-confirm each round. Do halt and surface whenever a step fails, is ambiguous, or wants to widen scope beyond resolving the findings.
 
 **Never end a turn mid-loop.** You are done only once you have emitted the step 4 report, or an explicit halt with its reason. A green verify is a gate result, not an endpoint; if you are about to stop and can name neither, you are still mid-loop, so continue.
 

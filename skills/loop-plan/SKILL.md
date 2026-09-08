@@ -7,6 +7,8 @@ Turn a request into a **converged, written plan** — one that a fresh reviewer 
 
 `ARGUMENTS` is the request: a bug fix, new feature, redesign, paper draft, or anything else. If empty, use the conversation's current request. If there is none, stop and ask what to plan.
 
+Invoking `/loop-plan` authorizes the exploration subagents in step 2 and the review subagent in step 4 — a default that withholds subagents "unless the user asks" is satisfied by the invocation itself. It authorizes those, not delegation generally; an instruction forbidding subagents outright still wins and is reported in step 5.
+
 ## Review profile
 
 `lean` and `thorough` are **reserved directive tokens** setting how much of the step 4 loop repeats. Because `ARGUMENTS` here is free prose, recognize either only as the **first or last** whitespace-separated token, case-insensitively, and strip it before treating the remainder as the request — anywhere else it's part of the request ("make the build lean" plans a build change).

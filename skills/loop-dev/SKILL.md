@@ -7,7 +7,7 @@ Take a request from words to a shipped deliverable, autonomously. This is an **o
 
 `ARGUMENTS` is the request (any type), plus optional `draft` to pass through to PR creation. If the request is empty, use the conversation's current one; if there is none, stop and ask.
 
-Invoking `/loop-dev` authorizes the whole pipeline — planning, branching, committing, verifying, and shipping. Do **not** re-confirm each step. Do halt and surface whenever a step fails, is ambiguous, or wants to widen scope beyond the request.
+Invoking `/loop-dev` authorizes the whole pipeline — planning, branching, committing, verifying, and shipping — and the subagents its planning, exploration, and document-critique steps define; a default that withholds subagents "unless the user asks" is satisfied by the invocation itself. Do **not** re-confirm each step. Do halt and surface whenever a step fails, is ambiguous, or wants to widen scope beyond the request.
 
 **Never end a turn mid-pipeline.** You are done only once you have emitted an endpoint — a PR URL, a branch name, or a file path — or an explicit halt with its reason. A sub-skill returning green is a gate result, not an endpoint; if you are about to stop and can name neither, you are still mid-pipeline, so continue.
 
