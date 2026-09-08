@@ -72,7 +72,7 @@ While reading, look for:
 - Documentation drift if the PR changes public API or user-visible behavior.
 - Out-of-scope churn bundled into the same PR.
 
-Be **critical and direct**. Surface real issues plainly without softening. Do not pad the list with stylistic nitpicks just to have findings. If the PR is clean, say so.
+Be **critical and direct**. Surface real issues plainly without softening. Note every concern you genuinely notice, including ones you aren't yet sure about — step 4 is where candidates get verified and filtered, so don't hold one back here to keep the list short. If the PR is clean, say so.
 
 ## Step 4 — Verify each finding before reporting
 
@@ -86,6 +86,8 @@ For each candidate:
 - **Confirm the failing path is reachable.** An edge case sitting behind a guard the diff also adds is not a bug.
 
 Drop any finding that doesn't survive this check. A surviving finding must cite the concrete evidence — the `path:line`, the caller you read, the branch you traced — so the author can confirm it the same way. If you're still unsure after verifying, report it as a question, not a defect.
+
+This is the only place findings get filtered, and it filters hard: a short review with two verified issues is better than a long review with eight unverified ones. Don't pad the surviving list with stylistic nitpicks just to have findings.
 
 ## Step 5 — Report
 
@@ -127,5 +129,5 @@ If `gh pr checkout` switched branches, end the review by telling the user the cu
 - **Do not post the review to GitHub.** Render it in chat; the user decides if and how to post.
 - **Do not run the project's test suite** unless the user explicitly asks — reviews are about reading, not running.
 - **Do not check out** if the working tree is dirty. Stop and surface the dirty state.
-- **Do not invent findings.** A short review with two real issues is better than a long review with eight invented ones.
+- **Do not invent findings.** Generate candidates freely in step 3; report only what survives step 4.
 - **Verify before reporting.** Every finding is confirmed against the actual source and its call sites (read them, don't just grep), and every condition is checked for inversion. Unverified suspicions are dropped, not reported — or downgraded to an explicit question.

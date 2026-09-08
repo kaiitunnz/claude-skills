@@ -110,11 +110,12 @@ For each requirement, include an identifier, priority, user or business need, an
 ## Appendix
 ```
 
-Omit sections only when they are genuinely irrelevant, and prefer `Not applicable` for sections whose absence might otherwise look accidental. Add domain-specific sections when useful, such as personas, UX/content guidance, accessibility, localization, pricing, support readiness, analytics, or legal/compliance requirements. Keep technical architecture and implementation detail out of the PRD except where they are material constraints; record a follow-up RFC or technical plan when a decision needs that depth.
+The template is a checklist of what to consider, not a set of headings to fill. **Omit any section the PRD has nothing real to say about** — a heading carrying a sentence of restatement is worse than no heading. When several omissions could look accidental, note them in one line under Summary (`Not applicable: localization, pricing.`) rather than emitting an empty section each. Add domain-specific sections when useful, such as personas, UX/content guidance, accessibility, localization, pricing, support readiness, analytics, or legal/compliance requirements. Keep technical architecture and implementation detail out of the PRD except where they are material constraints; record a follow-up RFC or technical plan when a decision needs that depth.
 
 ## Quality Bar
 
 - Make the PRD outcome- and user-centered, not a list of implementation tasks.
+- Match the document's length to what the decision needs. Cover the substance and stop — no filler sections, no summary that repeats the summary, no boilerplate held over from the template.
 - State the problem, target users, and user value before proposing scope.
 - Distinguish MVP from later work and non-goals so delivery teams can make tradeoffs.
 - Give every functional requirement a priority and observable acceptance criteria.

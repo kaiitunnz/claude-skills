@@ -106,11 +106,12 @@ Use this structure unless an existing project RFC template clearly supersedes it
 ## Appendix
 ```
 
-Omit sections only when they are genuinely irrelevant, and prefer `Not applicable` for sections whose absence might otherwise look accidental. Add domain-specific sections when useful, such as API shape, UX flows, data model, compatibility, performance, accessibility, observability, or backwards compatibility.
+The template is a checklist of what to consider, not a set of headings to fill. **Omit any section the RFC has nothing real to say about** — a heading carrying a sentence of restatement is worse than no heading. When several omissions could look accidental, note them in one line under Summary (`Not applicable: accessibility, localization.`) rather than emitting an empty section each. Add domain-specific sections when useful, such as API shape, UX flows, data model, compatibility, performance, accessibility, observability, or backwards compatibility.
 
 ## Quality Bar
 
 - Make the RFC decision-ready, not merely descriptive.
+- Match the document's length to what the decision needs. Cover the substance and stop — no filler sections, no summary that repeats the summary, no boilerplate held over from the template.
 - Tie recommendations to evidence, constraints, and tradeoffs.
 - Use concrete examples, command names, file paths, schemas, or interface sketches when they clarify the proposal.
 - Separate requirements from design choices.
