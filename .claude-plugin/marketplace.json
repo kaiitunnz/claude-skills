@@ -1,0 +1,16 @@
+{
+  "name": "kaiitunnz",
+  "owner": {
+    "name": "kaiitunnz"
+  },
+  "metadata": {
+    "description": "kaiitunnz's development-workflow skills for Claude Code."
+  },
+  "plugins": [
+    {
+      "name": "claude-skills",
+      "source": "./",
+      "description": "Portable agent skills for everyday development workflows: project setup, git, PRs, review, and autonomous plan/dev/revise loops."
+    }
+  ]
+}
