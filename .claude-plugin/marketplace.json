@@ -8,7 +8,7 @@
   },
   "plugins": [
     {
-      "name": "claude-skills",
+      "name": "kaiitunnz-skills",
       "source": "./",
       "description": "Portable agent skills for everyday development workflows: project setup, git, PRs, review, and autonomous plan/dev/revise loops."
     }

@@ -1,5 +1,5 @@
 {
-  "name": "claude-skills",
+  "name": "kaiitunnz-skills",
   "version": "0.1.0",
   "description": "Portable agent skills for everyday development workflows: project setup, git, PRs, review, and autonomous plan/dev/revise loops.",
   "author": {
