@@ -65,10 +65,10 @@ The repo is also a Claude Code plugin (`.claude-plugin/plugin.json`) and a singl
 
 ```text
 /plugin marketplace add kaiitunnz/claude-skills
-/plugin install claude-skills@kaiitunnz
+/plugin install kaiitunnz-skills@kaiitunnz
 ```
 
-The plugin ships the first-party skills under [`skills/`](skills/) only; third-party skills stay `install.sh`-only. Plugin skills are namespaced, so they're invoked as `/claude-skills:<skill-name>`. For local development, `claude --plugin-dir .` loads the working tree, and `claude plugin validate .` checks the manifests.
+The plugin ships the first-party skills under [`skills/`](skills/) only; third-party skills stay `install.sh`-only. Plugin skills are namespaced, so they're invoked as `/kaiitunnz-skills:<skill-name>`. For local development, `claude --plugin-dir .` loads the working tree, and `claude plugin validate .` checks the manifests.
 
 Third-party skills (see below) are only available once their submodule is checked out, so on a fresh clone initialize submodules first:
 
