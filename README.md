@@ -59,6 +59,17 @@ The format follows the emerging cross-agent convention also used by [`AGENTS.md`
 
 The installer is idempotent (re-running is a no-op) and safe: it never overwrites a real directory, and leaves a symlink pointing at another source untouched unless you pass `--force`. It targets macOS and Linux; run it as `./install.sh` or `bash install.sh`. See `./install.sh --help` for the full flag list, and `test/smoke.sh` for the behavior contract.
 
+### As a Claude Code plugin
+
+The repo is also a Claude Code plugin (`.claude-plugin/plugin.json`) and a single-plugin marketplace (`.claude-plugin/marketplace.json`), so Claude Code users can install it without cloning:
+
+```text
+/plugin marketplace add kaiitunnz/claude-skills
+/plugin install claude-skills@kaiitunnz
+```
+
+The plugin ships the first-party skills under [`skills/`](skills/) only; third-party skills stay `install.sh`-only. Plugin skills are namespaced, so they're invoked as `/claude-skills:<skill-name>`. For local development, `claude --plugin-dir .` loads the working tree, and `claude plugin validate .` checks the manifests.
+
 Third-party skills (see below) are only available once their submodule is checked out, so on a fresh clone initialize submodules first:
 
 ```bash

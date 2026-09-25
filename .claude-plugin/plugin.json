@@ -1,0 +1,11 @@
+{
+  "name": "claude-skills",
+  "version": "0.1.0",
+  "description": "Portable agent skills for everyday development workflows: project setup, git, PRs, review, and autonomous plan/dev/revise loops.",
+  "author": {
+    "name": "kaiitunnz"
+  },
+  "homepage": "https://github.com/kaiitunnz/claude-skills",
+  "repository": "https://github.com/kaiitunnz/claude-skills",
+  "keywords": ["skills", "git", "pull-requests", "code-review", "workflow"]
+}
