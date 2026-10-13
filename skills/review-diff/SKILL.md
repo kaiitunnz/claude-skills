@@ -52,6 +52,8 @@ For large diffs (≥ ~500 lines or ≥ ~10 files), use **TodoWrite** to track:
 
 For each file changed, prefer reading the **full file** via the Read tool when the diff alone hides context — bug-prone areas are usually at the boundary between added and unchanged code. The smaller scope of a diff review (vs. a full PR) is **not** a license to skim; it's a license to be more concrete.
 
+In range mode, review every commit in the range, including ones from earlier sessions or other authors — an inherited hunk is as much in scope as a new one.
+
 While reading, look for:
 
 **Correctness**
@@ -69,12 +71,16 @@ While reading, look for:
 - Premature abstractions, unused parameters/types, dead imports.
 - Naming that obscures intent.
 - New dependencies or backwards-compat shims that the change doesn't actually need.
+- **Organization:** code placed where its package's convention doesn't fit (a plain data holder in a package reserved for long-running services); logic repeated where an existing seam fits — a helper, a property, a method on the owning model.
+- **Structure:** sibling branches that repeat a condition and should nest; a step comment removed or left misnumbered; a check-then-act guard that narrows a race instead of removing it.
+- **Consistency:** an option a new field sets that its siblings don't; a term the change introduces or renames that some doc, field description, or log string still spells the old way — grep for it.
 
 **Others**
 - Security issues at trust boundaries (input validation, secrets handling, command injection).
 - Performance regressions on hot paths (N+1, redundant I/O, unbounded loops).
 - Test coverage gaps for the new behavior.
 - Documentation drift if the change touches public API or user-visible behavior.
+- **Doc fit:** each doc carries the detail its reader needs. Execution internals belong in architecture-level docs, not user guides; a sidenote stays a sidenote; a paragraph that doesn't serve the doc's reader is cut.
 - Out-of-scope churn that should be split into a separate commit or change.
 
 Be **critical and direct**. Surface real issues plainly without softening. Note every concern you genuinely notice, including ones you aren't yet sure about — step 4 is where candidates get verified and filtered, so don't hold one back here to keep the list short. If the diff is clean, say so.
@@ -92,7 +98,7 @@ For each candidate:
 
 Drop any finding that doesn't survive this check. A surviving finding must cite the concrete evidence — the `path:line`, the caller you read, the branch you traced — so the user can confirm it the same way. If you're still unsure after verifying, report it as a question, not a defect.
 
-This is the only place findings get filtered, and it filters hard: a short review with two verified issues is better than a long review with eight unverified ones. Don't pad the surviving list with stylistic nitpicks just to have findings.
+This is the only place findings get filtered, and it filters hard: a short review with two verified issues is better than a long review with eight unverified ones. Keep pure-taste preferences out. A departure from a stated project convention, or an organization, structure, consistency, or doc-fit problem the author would fix, is a finding, not a nitpick.
 
 ## Step 5 — Report
 
