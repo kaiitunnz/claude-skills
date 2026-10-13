@@ -35,7 +35,8 @@ An explicit token wins; otherwise `lean` on Claude Opus 5 or newer, `thorough` o
 Review the target **critically and with fresh eyes**. The goal is to catch what the author (you) is biased not to see.
 
 - **Prefer a subagent.** If your harness can spawn a sub-agent with its own context, delegate the review to one so it reads the diff cold rather than reusing your justifications. Instruct it to run `/review-pr <N>` (or `/review-diff <target> <base>` when the PR isn't reviewable yet) and return the structured verdict + findings. If you can't delegate — the harness has no subagents, or a standing instruction forbids them — review inline and record which on the report's `Fallbacks` line; a permission conflict is the user's to resolve, not yours to settle silently. The profile sets how many rounds get one — one cold read is what removes author bias, and repeating it doesn't remove it twice.
-- Use `/review-pr` (PR is open) when available; fall back to `/review-diff <target> <base>` for a local range review. If neither skill is installed, review inline against correctness, project coding conventions, and other concrete issues — no padding, no invented findings.
+- **Brief for the whole target.** Whoever reviews — subagent or you inline — covers the whole diff, whichever commit introduced each hunk, across every check the review skill lists, not correctness alone. Pass the user's settled decisions as context so they aren't relitigated, never as limits on what gets examined.
+- Use `/review-pr` (PR is open) when available; fall back to `/review-diff <target> <base>` for a local range review. If neither skill is installed, review inline against correctness, project conventions, organization, structure, consistency, and doc fit — no padding, no invented findings.
 
 Capture the verdict and the per-finding list verbatim.
 
