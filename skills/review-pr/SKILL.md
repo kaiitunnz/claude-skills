@@ -48,14 +48,14 @@ For large PRs (≥ ~500 lines or ≥ ~10 files), use **TodoWrite** to track:
 
 For each file changed, prefer reading the **full file** via the Read tool when the diff alone hides context — bug-prone areas are usually at the boundary between added and unchanged code.
 
-Review every commit in the PR, including ones from earlier sessions or other authors — an inherited hunk is as much in scope as a new one.
+Review the whole diff: every hunk is in scope, whichever commit or author introduced it.
 
 While reading, look for:
 
 **Correctness**
 - Logic errors, off-by-one, wrong operator, swapped arguments, wrong default.
 - Missing edge-case handling at *boundaries* the diff actually crosses (don't invent edge cases that aren't reachable).
-- Race conditions, missing `await`, unhandled exceptions in async paths.
+- Race conditions, missing `await`, unhandled exceptions in async paths; a check-then-act guard that narrows a race window instead of removing the race.
 - Broken contracts: function signature change without callsite updates; schema/migration drift; API contract change without client/test update.
 - Dead or unreachable code introduced by the change.
 - Tests that don't actually exercise the new behavior (asserts on irrelevant fields, missing the failure case the bug fix was about, etc.).
@@ -66,16 +66,16 @@ While reading, look for:
 - Premature abstractions, unused parameters/types, dead imports.
 - Naming that obscures intent.
 - New dependencies or backwards-compat shims that the change doesn't actually need.
-- **Organization:** code placed where its package's convention doesn't fit (a plain data holder in a package reserved for long-running services); logic repeated where an existing seam fits — a helper, a property, a method on the owning model.
-- **Structure:** sibling branches that repeat a condition and should nest; a step comment removed or left misnumbered; a check-then-act guard that narrows a race instead of removing it.
-- **Consistency:** an option a new field sets that its siblings don't; a term the change introduces or renames that some doc, field description, or log string still spells the old way — grep for it.
+- **Organization:** code placed against the convention of its directory or module (e.g. a data type in a directory that holds only one kind of component); logic repeated where an existing seam fits — a helper, an accessor, a method on the owning type.
+- **Structure:** sibling branches that repeat a condition and should nest; a numbered sequence (step comments, list items, headings) left with a gap or out of order after the edit.
+- **Consistency:** a flag or setting one new declaration carries that its siblings don't, or the reverse; a term the change introduces or renames that a doc, docstring, schema description, or log string still spells the old way — grep for it.
 
 **Others**
 - Security issues at trust boundaries (input validation, secrets handling, command injection).
 - Performance regressions on hot paths (N+1, redundant I/O, unbounded loops).
 - Test coverage gaps for the new behavior.
 - Documentation drift if the PR changes public API or user-visible behavior.
-- **Doc fit:** each doc carries the detail its reader needs. Execution internals belong in architecture-level docs, not user guides; a sidenote stays a sidenote; a paragraph that doesn't serve the doc's reader is cut.
+- **Doc fit:** each doc carries the detail its reader acts on. Implementation internals stay out of user-facing docs, in whatever developer docs or code the project keeps them; a passing caveat stays a clause rather than growing into its own paragraph or section; a paragraph that doesn't serve the doc's reader is cut.
 - Out-of-scope churn bundled into the same PR.
 
 Be **critical and direct**. Surface real issues plainly without softening. Note every concern you genuinely notice, including ones you aren't yet sure about — step 4 is where candidates get verified and filtered, so don't hold one back here to keep the list short. If the PR is clean, say so.
@@ -93,7 +93,7 @@ For each candidate:
 
 Drop any finding that doesn't survive this check. A surviving finding must cite the concrete evidence — the `path:line`, the caller you read, the branch you traced — so the author can confirm it the same way. If you're still unsure after verifying, report it as a question, not a defect.
 
-This is the only place findings get filtered, and it filters hard: a short review with two verified issues is better than a long review with eight unverified ones. Keep pure-taste preferences out. A departure from a stated project convention, or an organization, structure, consistency, or doc-fit problem the author would fix, is a finding, not a nitpick.
+This is the only place findings get filtered, and it filters hard: a short review with two verified issues is better than a long review with eight unverified ones. Keep pure-taste preferences out. A departure from a stated project convention, or an organization, structure, consistency, or doc-fit problem you can tie to an established pattern elsewhere in the repo or a concrete cost to a reader or maintainer, is a finding, not a nitpick.
 
 ## Step 5 — Report
 
@@ -120,8 +120,8 @@ Rules for the output:
 - Each item ends with a one-sentence "Recommended action" the author (or you, on a follow-up) can act on.
 - Omit a section entirely if it has zero findings — do not write "no issues" inside a section. If all three are empty, state that directly under the summary and skip the headers.
 - The verdict ladder:
-  - **Ready to merge** — no correctness issues; at most a couple of minor style nits the author can defer.
-  - **Needs changes** — at least one correctness issue, or multiple style issues that violate the project's stated conventions.
+  - **Ready to merge** — no finding the author should act on; anything left is marked *(optional)* in its Recommended action because deferring it has no concrete cost.
+  - **Needs changes** — at least one verified finding the author should act on: a correctness issue, a convention departure, or an organization, structure, consistency, or doc-fit problem.
   - **Major rework required** — fundamental design problem, broken contract, or the diff doesn't match the stated intent.
 - Don't fabricate findings. Don't open with "Overall, this is a great PR." Don't end with a "happy to discuss" footer.
 
