@@ -1,6 +1,6 @@
 # claude-skills
 
-A small collection of portable **agent skills** for everyday development workflows — project setup, git, PR, and review. Each skill is a `SKILL.md` with YAML frontmatter (`name`, `description`) and a step-by-step procedure the agent follows when the skill is invoked; larger skills add a `references/` directory that the `SKILL.md` routes to for detail.
+A small collection of portable **agent skills** for working through ideas and managing development workflows — project setup, git, PR, and review. Each skill is a `SKILL.md` with YAML frontmatter (`name`, `description`) and working principles or a task procedure the agent follows when the skill is invoked; larger skills add a `references/` directory that the `SKILL.md` routes to for detail.
 
 The format follows the emerging cross-agent convention also used by [`AGENTS.md`](https://agents.md): a plain markdown file with a short frontmatter header and natural-language instructions. Skills here have been tested with **Claude Code**, but the contents are agent-neutral — Codex, OpenCode, Cursor, Aider, and other agents that load markdown instructions / custom commands / prompt libraries can use the same files (sometimes with a thin per-agent loader).
 
@@ -8,6 +8,7 @@ The format follows the emerging cross-agent convention also used by [`AGENTS.md`
 
 | Skill | Purpose |
 | --- | --- |
+| [`thinking-partner`](skills/thinking-partner/SKILL.md) | Work through questions and ideas with independent research, critical reasoning, and clear recommendations. Takes initiative while respecting the user's scope. |
 | [`init-python-project`](skills/init-python-project/SKILL.md) | Scaffold a new Python project — or align an existing one — onto a uv + src-layout + pre-commit + pytest baseline, surfacing the few real choices (workspace, version source, async, CLI, security tier) as decisions. |
 | [`make-commits`](skills/make-commits/SKILL.md) | Split staged + unstaged changes into logical commits matching the repo's existing style. Verifies author, honors DCO signoff, pauses on non-trivial pre-commit failures. |
 | [`create-pr`](skills/create-pr/SKILL.md) | Open a PR that mirrors the host repo's title prefix, body structure, and detail level by inspecting recent merged PRs. Supports `draft`. |
@@ -29,6 +30,7 @@ The format follows the emerging cross-agent convention also used by [`AGENTS.md`
 
 ## Typical flows
 
+- **Work through a question or idea:** `thinking-partner` (reads the relevant material, tests assumptions, and recommends a way forward; stays within the requested scope)
 - **New project:** `init-python-project` (scaffold the baseline, then verify)
 - **Commit → PR:** `make-commits` → `create-pr`
 - **CI red on a PR:** `address-ci-failures` → `make-commits`
@@ -113,11 +115,11 @@ git commit -m "Bump mattpocock skills"
 
 To adopt more skills from an existing source, add their paths to the manifest (`ls 3rdparty/mattpocock/skills/*/` shows the upstream categories). To vendor a new source, `git submodule add <url> 3rdparty/<vendor>` and create `3rdparty/<vendor>.manifest`.
 
-Skills are intentionally written as **prose procedures**, not code — they describe what the agent should read, decide, and do, in the order it should do them. That makes them portable across agents and easy to adapt: fork a `SKILL.md`, tweak the steps, drop it into your own workflow.
+Skills are intentionally written as **prose instructions**, not code — they describe how the agent should investigate, reason, decide, or carry out a task. That makes them portable across agents and easy to adapt: fork a `SKILL.md`, adjust the guidance, drop it into your own workflow.
 
 ## Conventions across skills
 
-- **Read before acting.** Every skill starts by surveying repo state (`git status`, recent commits, project conventions in `AGENTS.md` / `CLAUDE.md` / `CONTRIBUTING.md`).
+- **Read before acting.** Development skills survey relevant repo state (`git status`, recent commits, project conventions in `AGENTS.md` / `CLAUDE.md` / `CONTRIBUTING.md`). For questions and decisions, skills like `thinking-partner` consult relevant material before making recommendations.
 - **Stage, don't commit.** `address-ci-failures` and `address-review` leave changes in the worktree and hand off to `make-commits`.
 - **Render, don't post.** `address-review` drafts replies in chat; the user posts them.
 - **Surface, don't bypass.** No `--no-verify`, no auto-`--amend`, no auto-stash, no `--force` without `--with-lease`. When a step is ambiguous, the skill stops and asks.

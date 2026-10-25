@@ -4,13 +4,13 @@
     "name": "kaiitunnz"
   },
   "metadata": {
-    "description": "kaiitunnz's development-workflow skills for Claude Code."
+    "description": "kaiitunnz's collaboration and development-workflow skills for Claude Code."
   },
   "plugins": [
     {
       "name": "kaiitunnz-skills",
       "source": "./",
-      "description": "Portable agent skills for everyday development workflows: project setup, git, PRs, review, and autonomous plan/dev/revise loops."
+      "description": "Portable agent skills for working through ideas and managing development workflows: project setup, git, PRs, review, and autonomous plan/dev/revise loops."
     }
   ]
 }
