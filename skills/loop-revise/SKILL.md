@@ -36,7 +36,7 @@ Invoking `/loop-revise` (directly or via `/ship-pr`) authorizes the whole loop, 
 
 Both profiles usually finish in two or three rounds.
 
-An explicit token wins; otherwise `lean` on Claude Opus 5 or newer, `thorough` otherwise — including when the model can't be determined.
+An explicit token wins; otherwise `lean` on Claude Opus 5 or newer, or on Claude Sonnet 5.5 or newer at `xhigh` effort or higher, `thorough` otherwise — including when the model or effort can't be determined.
 
 ## Step 1 — Round 1: cold review
 

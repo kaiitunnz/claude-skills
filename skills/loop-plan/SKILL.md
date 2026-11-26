@@ -18,7 +18,7 @@ Invoking `/loop-plan` authorizes the exploration subagents in step 2 and the rev
 | Converged when | first review with no material issues | that, or two consecutive rounds surfacing nothing new |
 | Re-review after revising | only after a substantive revision | every round, except after a wording-only revision |
 
-An explicit token wins; otherwise `lean` on Claude Opus 5 or newer, `thorough` otherwise — including when the model can't be determined. The review itself is a cold read of the plan file under both profiles; that's the mechanism, not the dial.
+An explicit token wins; otherwise `lean` on Claude Opus 5 or newer, or on Claude Sonnet 5.5 or newer at `xhigh` effort or higher, `thorough` otherwise — including when the model or effort can't be determined. The review itself is a cold read of the plan file under both profiles; that's the mechanism, not the dial.
 
 ## Step 1 — Understand the request
 
