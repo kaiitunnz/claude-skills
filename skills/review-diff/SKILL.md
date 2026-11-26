@@ -1,6 +1,6 @@
 ---
 name: review-diff
-description: Review a local diff for correctness, design, tests and docs, and compliance with the project's coding guidelines. Args select the diff source — `unstaged`, `staged`, `all [<base>]` (the whole branch including uncommitted and untracked work), or a `<target> [<base>]` range (defaulting `<base>` to the fetched remote default branch). With no args, reviews staged, unstaged, and untracked worktree changes. Surfaces real issues without padding and ends with a ship/iterate verdict. Use when the user says "review my changes", "/review-diff", or wants a critique of work-in-progress code before committing.
+description: Review a local diff for correctness, design, tests and docs, and compliance with the project's coding guidelines. Args select the diff source — `unstaged`, `staged`, `all [<base>]` (the whole branch including uncommitted and untracked work), or a `<target> [<base>]` range (defaulting `<base>` to the fetched remote default branch). With no args, reviews staged, unstaged, and untracked worktree changes. Surfaces real issues without padding and ends with a Looks good / Needs changes / Major rework verdict. Use when the user says "review my changes", "/review-diff", or wants a critique of work-in-progress code before committing.
 ---
 
 Review a local diff rigorously. The user wants a critical, no-padding review that weighs **design** and **tests and docs** as heavily as **correctness** — not generic praise, not a summary of the diff.
@@ -59,11 +59,11 @@ For large diffs (≥ ~500 lines or ≥ ~10 files), use **TodoWrite** to track:
 - One todo per logical area or per file group.
 - Mark each in-progress while reading; completed when reviewed.
 
-For each file changed, prefer reading the **full file** via the Read tool when the diff alone hides context — bug-prone areas are usually at the boundary between added and unchanged code. The smaller scope of a diff review (vs. a full PR) is **not** a license to skim; it's a license to be more concrete.
+For each file changed, prefer reading the **full file** — at the target revision (`git show <target>:<path>`) when the target isn't the worktree — when the diff alone hides context — bug-prone areas are usually at the boundary between added and unchanged code. The smaller scope of a diff review (vs. a full PR) is **not** a license to skim; it's a license to be more concrete.
 
 Review the whole diff: every hunk is in scope, whichever commit or author introduced it.
 
-**Inventory sweep.** Before the checklist, list each module, type, public function, and file the change adds, moves, or renames (for prose, each new section or page), and check each for placement, signature, naming, and tests or docs. The sweep is done when every listed item is checked.
+**Inventory sweep.** Before the checklist, list each module, type, public function, and file the change adds, moves, or renames (for prose, each new section or page), and check each for placement, signature, naming, and tests or docs — under a focus, only the focused aspects, and not at all for a Correctness-only focus. The sweep is done when every listed item is checked.
 
 Then work the checklist:
 

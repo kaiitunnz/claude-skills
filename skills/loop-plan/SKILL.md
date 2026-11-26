@@ -40,7 +40,7 @@ Add these sections where they apply:
 
 - **Interfaces and placement** — when the change adds or moves a module, type, or public function: its location and nearest peers, its signature (which parameters are required, and why), and what it does on absent or invalid input.
 - **Compatibility** — when the change alters something others depend on (a public API, CLI, file or data format, config, stored data): what breaks for existing users or data, and the migration path.
-- **Decision log** (every plan) — each decision and its reason. `/loop-revise` hands it to code reviewers, so a later review that would reverse a decision meets its reason instead of rediscovering the question.
+- **Decision log** (every plan) — each decision, its reason, and whether the user or the plan made it. `/loop-revise` hands it to code reviewers, so a later review that would reverse a decision meets its reason instead of rediscovering the question.
 
 **Multi-agent organization.** Decide whether the work should fan out. If `/waypoint-workqueue` is available *and* the work is a batch of largely independent tasks at a scale one context can't hold well (migration, codemod, broad audit, many parallel edits), plan the workqueue split — lead vs. workers, task boundaries, how results merge — and record it in the plan. If `/waypoint-crew` is available *and* the work is a product/lifecycle-scale effort that needs durable multi-role Waypoint sessions, plan the crew shape, phase boundaries, dependency contracts, and checkpoint gates. Otherwise plan for a single context. Don't reach for a workqueue for tightly-coupled feature work, and don't reach for a crew for a bounded batch or one coherent change.
 

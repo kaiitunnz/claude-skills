@@ -26,7 +26,7 @@ Don't introduce a tool the project has never used — e.g. don't run mypy on a p
 
 ```bash
 uv run pre-commit run --all-files
-uv run pre-commit run --files $(git ls-files --others --exclude-standard)   # only when that list is non-empty
+git ls-files -z --others --exclude-standard | xargs -0 -r uv run pre-commit run --files   # untracked files; -r skips an empty list
 uv run pytest <paths-or-empty>
 ```
 
