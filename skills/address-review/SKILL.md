@@ -1,9 +1,9 @@
 ---
 name: address-review
-description: Work through reviewer feedback on a PR systematically — accept or push back on each finding with reasoning, implement accepted ones, draft a per-finding reply to the reviewer. Optional argument is a PR number, PR URL, or a path/file containing pasted review text; defaults to the open PR for the current branch. Leaves changes staged for /make-commits; renders the reply draft in chat. Use when the user says "/address-review", "address this review", or pastes reviewer comments.
+description: Work through reviewer feedback on a PR systematically — accept or push back on each finding with reasoning, implement accepted ones, draft a per-finding reply to the reviewer. Optional argument is a PR number, PR URL, or a path/file containing pasted review text; defaults to the open PR for the current branch. Leaves changes unstaged for /make-commits; renders the reply draft in chat. Use when the user says "/address-review", "address this review", or pastes reviewer comments.
 ---
 
-Take a reviewer's findings and work through them one by one. Be **critical** — agree when they're right, push back when they're not, and only implement what's genuinely correct. The output is staged code changes plus a draft reply per finding for the user to post.
+Take a reviewer's findings and work through them one by one. Be **critical** — agree when they're right, push back when they're not, and only implement what's genuinely correct. The output is unstaged code changes plus a draft reply per finding for the user to post.
 
 `ARGUMENTS` is optional. Accepted forms, in resolution order:
 
@@ -25,7 +25,7 @@ Run in parallel:
 - If reviewing a PR: `gh pr view <N> --json title,body,baseRefName,headRefName,url,reviews,comments` for full context.
 - Read `AGENTS.md`, `CLAUDE.md`, `.claude/CLAUDE.md`, lint configs — the project's coding standards. Same set `review-pr` reads.
 
-If the worktree has uncommitted changes from earlier work, **stop and ask** whether to address findings on top of them or whether the user wants to commit/stash first. Mixing in-progress work with review fixes makes `/make-commits` harder to split cleanly.
+If the worktree has uncommitted changes from earlier work, **stop and ask** whether to address findings on top of them or whether the user wants to commit/stash first. Mixing in-progress work with review fixes makes `/make-commits` harder to split cleanly. A caller that states it is addressing on top of existing uncommitted work (e.g. `/loop-revise no-commit`) has already answered this; proceed.
 
 ## Step 2 — Parse the findings
 
@@ -58,6 +58,7 @@ For each `Accept`:
 - Read the cited file(s) at the referenced lines to confirm the issue exists as described.
 - Make the minimal change that fixes the concern. Don't refactor surrounding code unless the reviewer explicitly asked.
 - After each fix, re-read the modified region to make sure the change is correct and complete.
+- Then run the **consequence sweep**: read every reference to each symbol, string, or path the fix touched, and update what the fix made stale. A rename, move, split, or narrowed contract reaches strings, logs, docstrings, fakes, tests, and docs; a module move reaches test layout and shared test helpers; a signature change reaches defaults and fakes; a new or edited doc example gets run through the validation it describes. The sweep is done when every touched symbol's references have been read — an unswept fix seeds the next review round.
 
 Do **not** commit. The user will run `/make-commits` (or commit manually) after the draft is ready.
 
