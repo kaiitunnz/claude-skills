@@ -58,7 +58,7 @@ For each `Accept`:
 - Read the cited file(s) at the referenced lines to confirm the issue exists as described.
 - Make the minimal change that fixes the concern. Don't refactor surrounding code unless the reviewer explicitly asked.
 - After each fix, re-read the modified region to make sure the change is correct and complete.
-- Then run the **consequence sweep**: read every reference to each symbol, string, or path the fix touched, and update what the fix made stale. A rename, move, split, or narrowed contract reaches strings, logs, docstrings, fakes, tests, and docs; a module move reaches test layout and shared test helpers; a signature change reaches defaults and fakes; a new or edited doc example gets run through the validation it describes. The sweep is done when every touched symbol's references have been read — an unswept fix seeds the next review round.
+- Then run the **consequence sweep**: read every reference to each symbol, string, or path the fix renamed, moved, or changed — code, tests, docs, comments, log and error text — and update what it made stale; re-check any doc example it added or edited. The sweep is done when every reference has been read — an unswept fix seeds the next review round.
 
 Do **not** commit. The user will run `/make-commits` (or commit manually) after the draft is ready.
 

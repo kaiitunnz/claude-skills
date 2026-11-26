@@ -24,7 +24,7 @@ Parse `ARGUMENTS` into one of these modes:
 | `all [<base>]` | whole branch | `git diff $(git merge-base <base> HEAD)` + untracked |
 | `<target> [<base>]` | range | `git diff <base>...<target>` |
 
-"+ untracked" means also list `git ls-files --others --exclude-standard` and read each listed file in full, since `git diff` never shows untracked content.
+"+ untracked" means also list `git ls-files --others --exclude-standard` — `git diff` never shows untracked content — and read in full each listed file that belongs to the change (source, tests, docs, config); name any you skipped (data, build output, binaries) in the report.
 
 `<target>` and `<base>` can each be `HEAD`, a branch name, or a commit hash. Treat them as opaque revisions and pass them through to git verbatim; let git resolve and complain. The default `<base>` is the remote default branch, fetched fresh: `git fetch origin <default>` (default from `gh repo view --json defaultBranchRef -q .defaultBranchRef.name`, else `main`), then `origin/<default>`. If the fetch fails, use the local `<default>` and say so in the report — a stale base pulls unrelated merged work into the review. Diffing from the merge base (three-dot range, `all`) keeps commits the base gained after the branch forked out of the review.
 
@@ -63,7 +63,7 @@ For each file changed, prefer reading the **full file** via the Read tool when t
 
 Review the whole diff: every hunk is in scope, whichever commit or author introduced it.
 
-**Inventory sweep.** Before the checklist, list every type, function, field, module, config key, and test file the change adds, moves, or renames — one todo each. On a large diff, nest these under the area todos. Check each item for placement, signature, naming, and tests (under a focus, against the focused groups). The sweep is done when every item is accounted for.
+**Inventory sweep.** Before the checklist, list each module, type, public function, and file the change adds, moves, or renames (for prose, each new section or page), and check each for placement, signature, naming, and tests or docs. The sweep is done when every listed item is checked.
 
 Then work the checklist:
 
@@ -73,28 +73,29 @@ Then work the checklist:
 - Race conditions, missing `await`, unhandled exceptions in async paths; a check-then-act guard that narrows a race window instead of removing the race.
 - Broken contracts: function signature change without callsite updates; schema/migration drift; API contract change without client/test update.
 - Dead or unreachable code introduced by the change.
-- **Failure semantics:** `None`/absent meaning both "unknown" and "empty" (fails open); one unreadable persisted value breaking a listing of every record; operator misconfiguration accepted silently instead of refused at startup.
+- **Failure semantics:** one null/absent value meaning both "unknown" and "empty" (fails open); one bad item aborting a whole batch or listing; invalid configuration or input accepted silently instead of rejected early.
 - Security issues at trust boundaries (input validation, secrets handling, command injection).
 - Performance regressions on hot paths (N+1, redundant I/O, unbounded loops).
 - For worktree and `all` modes: half-finished refactors, stray debug prints/`console.log`, leftover `// TODO` markers that the user probably meant to resolve before committing.
 
 **Design**
-- **Placement:** each item sits beside its peers, where the codebase keeps similar types, clients, and settings; a core module imports no integration module; code follows its directory's convention (e.g. no data type in a directory that holds only one kind of component).
-- **Signatures:** a parameter or default only tests use; a value converted at a boundary and converted back; optionality that differs across layers for the same value; two optionals that must be set together (one nested optional); a protocol parameter the real implementation ignores, or one that lets an implementation break the protocol's stated invariant; logic reimplemented inline where an existing seam fits — a helper, an accessor, a method on the owning type.
+- **Placement:** each new or moved item sits beside its peers and follows its directory's convention (e.g. no data type in a directory that holds only one kind of component); imports follow the codebase's dependency direction.
+- **Signatures:** a parameter or default only tests use; a value converted at a boundary and converted back; the same value optional in one layer and required in another; an interface parameter its implementations ignore.
+- **Reuse:** logic reimplemented inline where an existing seam fits — a helper, an accessor, a method on the owning type.
 - Naming that obscures intent.
 - Departures from the conventions stated in `AGENTS.md` / `CLAUDE.md` / lint configs.
 - Comments that restate the code, narrate the task, or reference the current change ("added for X") — flag them per the project's comment policy.
 - Premature abstractions, unused parameters/types, dead imports; new dependencies or backwards-compat shims the change doesn't need.
 - **Structure:** sibling branches that repeat a condition and should nest; a numbered sequence (step comments, list items, headings) left with a gap or out of order after the edit.
 - **Consistency:** a flag or setting one new declaration carries that its siblings don't, or the reverse; a term the change introduces or renames that a doc, docstring, schema description, or log string still spells the old way — grep for it.
-- **Operator and user strings:** log and error text after a rename; user-facing errors that name env vars or show raw library reprs.
+- **User-facing text:** errors and messages that expose internals (raw exception reprs, internal names) instead of telling the user what to do.
 - Out-of-scope churn that should be split into a separate commit or change.
 
 **Tests and docs**
 - A test whose assertions would still hold with the fix removed is not coverage — asserts on irrelevant fields, or misses the failure case the bug fix was about.
 - Coverage gaps for the new behavior.
-- Test layout mirrors the module tree; shared fixtures rather than copies, which drift; tests through public seams rather than private state.
-- Documentation drift if the change touches public API or user-visible behavior; doc examples pass the validation they would meet.
+- Tests follow the project's existing layout; shared fixtures rather than copies, which drift; tests through public seams rather than private state.
+- Documentation drift if the change touches public API or user-visible behavior; doc examples are correct — check or run them.
 - **Doc fit:** each doc carries the detail its reader acts on. Implementation internals stay out of user-facing docs, in whatever developer docs or code the project keeps them; a caveat lives in the doc that owns it and others link to it; a passing caveat stays a clause rather than growing into its own paragraph or section; a paragraph that doesn't serve the doc's reader is cut.
 
 Be **critical and direct**. Surface real issues plainly without softening. Note every concern you genuinely notice, including ones you aren't yet sure about — step 4 is where candidates get verified and filtered, so don't hold one back here to keep the list short. If the diff is clean, say so.

@@ -1,6 +1,6 @@
 ---
 name: loop-revise
-description: Critically self-review a just-shipped change, drive every review finding to resolution, then confirm the result is still green. Runs a fanned-out cold review, addresses findings, and re-reviews each round's delta until it converges, then closes with a final full-verify gate. Orchestrates /review-diff, /address-review, and the repo's verify skill when installed; falls back inline when they aren't. Optional argument is a PR number/URL or a diff range; defaults to the open PR for the current branch. Add `e2e` to include the end-to-end suite in the verify gates, `no-commit` to keep every change uncommitted, and `lean` / `thorough` to select how hard the loop works. Use when the user says "/loop-revise", "review and fix what I just shipped", or as the revision phase of /ship-pr.
+description: Critically self-review a just-shipped change, drive every review finding to resolution, then confirm the result is still green. Runs a cold review, addresses findings, and re-reviews each round's fixes until it converges, then closes with a final full-verify gate. Orchestrates /review-diff, /address-review, and the repo's verify skill when installed; falls back inline when they aren't. Optional argument is a PR number/URL or a diff range; defaults to the open PR for the current branch. Add `e2e` to include the end-to-end suite in the verify gates, `no-commit` to keep every change uncommitted, and `lean` / `thorough` to select how hard the loop works. Use when the user says "/loop-revise", "review and fix what I just shipped", or as the revision phase of /ship-pr.
 ---
 
 Take a change (usually committed and pushed as a PR) and drive it to a **reviewed, resolved, verified-green** state. This is the **review → address findings → re-review** loop, run to convergence and capped with a final verify gate. It's an orchestrator: each sub-step has a dedicated skill; when that skill is installed, invoke it and treat it as authoritative; when it isn't, do the step inline following the principles named here. Never duplicate a delegated skill's work — call it, read its output, move on.
@@ -29,7 +29,7 @@ Invoking `/loop-revise` (directly or via `/ship-pr`) authorizes the whole loop, 
 
 | | `lean` | `thorough` |
 | --- | --- | --- |
-| Round 1 | fanned-out cold review | fanned-out cold review |
+| Round 1 | cold review | cold review |
 | Delta round | after a round with material fixes | after a round with material fixes |
 | Converged when | a round produces no material fix — none found, or each pushed back or left for the user | that, once the latest full-target review (round 1 or a final pass) found no material finding; otherwise a final full cold pass runs first |
 | Closing full verify | only if code changed since the last full green | always |
@@ -38,7 +38,7 @@ Both profiles usually finish in two or three rounds.
 
 An explicit token wins; otherwise `lean` on Claude Opus 5 or newer, `thorough` otherwise — including when the model can't be determined.
 
-## Step 1 — Round 1: fanned-out cold review
+## Step 1 — Round 1: cold review
 
 Review the target **critically and with fresh eyes**; the goal is to catch what the author (you) is biased not to see, across every dimension in one round.
 
@@ -46,10 +46,12 @@ Review the target **critically and with fresh eyes**; the goal is to catch what 
 
 1. **Resolve the base once.** An explicit base in `ARGUMENTS` wins. With a PR, read `gh pr view --json baseRefName,baseRefOid,headRefName,headRefOid,url`, fetch `baseRefName` from the remote whose `git remote -v` URL contains the `owner/repo` in the PR URL — or straight from `https://github.com/<owner>/<repo>.git` when none does — and use the fetched SHA. Without a PR, fetch the remote default branch. If the fetch fails, fall back to `baseRefOid` when present locally, else the local ref, and note it on `Fallbacks`.
 2. **Check out the PR head once** (PR target): the current branch must be the PR's `headRefName`, with HEAD at or ahead of `headRefOid`. Otherwise run `gh pr checkout <N>` on a clean tree, or halt when the tree is dirty.
-3. **Start the decision log** — a file outside the worktree (scratchpad or `mktemp -d`), seeded from the Decision log section of a caller-supplied plan, plus the user's settled decisions, each with its reason. Every file this loop creates lives outside the worktree, so no review, hook, or commit picks it up.
-4. **Take snapshot 0** of the reviewed state (see **Snapshots**), with parent `HEAD`.
+3. **Start the decision log** — a file outside the worktree (scratchpad or `mktemp -d`), seeded from the Decision log section of a caller-supplied plan, plus the user's settled decisions, each with its reason and whether the user or the plan made it.
+4. **Under `no-commit`, take snapshot 0** (see **No-commit mode**), with parent `HEAD`.
 
-**Fan out.** Spawn cold reviewer subagents in parallel, each with one focus: *Correctness*, *Design*, *Tests and docs* — or two, *Correctness* and *Design + Tests and docs*, for a target under ~500 lines and ~10 files. Each runs `/review-diff` over the whole target, read-only, in the target's mode: a PR or the empty default → `all <resolved-base>`; a range → that range with the resolved base; `staged` / `unstaged` → that mode. `/review-diff` rather than `/review-pr`, because parallel `gh pr checkout` runs race on the git lock and move HEAD under each other.
+Every file this loop creates lives outside the worktree, so no review, hook, or commit picks it up.
+
+**Review.** Spawn one cold reviewer subagent running `/review-diff` over the whole target, read-only, in the target's mode: a PR or the empty default → `HEAD <resolved-base>` (under `no-commit`, `all <resolved-base>`); a range → that range with the resolved base; `staged` / `unstaged` → that mode. For a large target (≥ ~500 lines or ≥ ~10 files), spawn three in parallel instead, one per focus — *Correctness*, *Design*, *Tests and docs* — and merge their findings into one numbered list, deduping ones that name the same defect and keeping each `material` / `optional` tag. Reviewers use `/review-diff` rather than `/review-pr`, which checks the PR out and would race its siblings on the git lock.
 
 **Brief** every reviewer with exactly:
 
@@ -57,11 +59,9 @@ Review the target **critically and with fresh eyes**; the goal is to catch what 
 - the change's stated purpose — the PR summary or the commit subjects — and nothing of the author's list of intended changes, which anchors the reviewer to verifying it;
 - the decision log file;
 - the classes of issue the user has caught by hand before, from memory or feedback files when present;
-- its focus, and the exhaustiveness bar: the review skill's inventory sweep, every item accounted for.
+- its focus, when fanned out.
 
-Merge the reviews into one numbered list, deduping findings that name the same defect and keeping each `material` / `optional` tag.
-
-If you can't delegate — the harness has no subagents, or a standing instruction forbids them — run each review this loop specifies inline (round 1 as one pass per focus, sequentially), and record which on the report's `Fallbacks` line; a permission conflict is the user's to resolve, not yours to settle silently. If `/review-diff` isn't installed, review inline against the same three groups — no padding, no invented findings.
+If you can't delegate — the harness has no subagents, or a standing instruction forbids them — run each review this loop specifies as one inline pass, and record which on the report's `Fallbacks` line; a permission conflict is the user's to resolve, not yours to settle silently. If `/review-diff` isn't installed, review inline against the same three groups — no padding, no invented findings.
 
 ## Step 2 — Address findings and re-review (loop)
 
@@ -69,43 +69,41 @@ Each review's findings come here — round 1's, then each later round's.
 
 Work the findings:
 
-- If `/address-review` is available, **invoke it** with the merged findings — under `no-commit`, stating that it is addressing on top of existing uncommitted work. It evaluates each finding (accept / push back / clarify with reasoning), implements the accepted ones with its consequence sweep, and leaves changes unstaged. Honor its push-backs — a finding you genuinely disagree with stays unaddressed, with the reasoning recorded.
-- Otherwise address them inline with the same discipline, including the consequence sweep: after each fix, read every reference to what it touched — strings, logs, docstrings, fakes, tests, docs, test layout, defaults — and run any new doc example through its validation.
+- If `/address-review` is available, **invoke it** with the findings — under `no-commit`, stating that it is addressing on top of existing uncommitted work. It evaluates each finding (accept / push back / clarify with reasoning), implements the accepted ones with its consequence sweep, and leaves changes unstaged. Honor its push-backs — a finding you genuinely disagree with stays unaddressed, with the reasoning recorded.
+- Otherwise address them inline with the same discipline, including a consequence sweep: after each fix, read every reference to what it touched and update what it made stale.
 - Optional findings are folded in or pushed back in the same round; they never earn a round of their own.
-- Format only through the repo's pinned hooks, on the files you changed — a different local formatter version run over whole directories reformats unrelated files.
-- A finding that reverses a plan or user decision in the log stays unapplied: continue with the other findings and list it on the report's `Decisions for user` line. A reviewer re-raising one of this loop's own push-backs with a new argument is evaluated like any other finding.
+- Format only the files you changed, with the project's own pinned formatter version.
+- A finding that reverses a **user** decision stays unapplied: continue with the other findings and list it on the report's `Decisions for user` line. One that reverses a **plan** decision, with a new argument against its logged reason, is evaluated like any other finding; an accepted reversal is logged and listed on `Decisions for user` as applied.
 
 After any change, material or optional:
 
-1. **Re-verify** the affected scope: from the repo root, `pre-commit run --files <list>` where the list is `git diff --name-only HEAD` plus `git ls-files --others --exclude-standard` — only when the list is non-empty, since an empty `--files` makes pre-commit stash unstaged changes — plus the relevant tests; or `/verify-impl`, forwarding `e2e` when given. Fix and repeat until it passes.
+1. **Re-verify** the affected scope — `/verify-impl` (forwarding `e2e` when given), or inline: the project's lint, format, and type checks on the changed and untracked files plus the relevant tests. Fix and repeat until it passes.
 2. **Commit** the fixes with `/make-commits` (or inline following its principles) and **push** — this updates the open PR when there is one. Skip under `no-commit`.
-3. **Log** each push-back and each accepted finding that changed an interface, with its reason, in the decision log.
+3. **Log** each push-back and each accepted plan-decision reversal, with its reason, in the decision log.
 
 Then pick the next review, per the profile:
 
-- **The round produced a material fix** → snapshot the end state (parent: the previous snapshot) and run a **delta round**: one cold reviewer runs `/review-diff <this snapshot> <previous snapshot>`, briefed with the stated purpose "the round's fixes to the listed findings", the previous round's findings and resolutions to confirm each fix holds, the instruction to read the blast radius of every touched symbol, and the decision log.
+- **The round produced a material fix** → run a **delta round**: one cold reviewer runs `/review-diff HEAD <HEAD at the round's start>` (under `no-commit`, `/review-diff <this snapshot> <previous snapshot>`), briefed with the stated purpose "the round's fixes to the listed findings", the previous round's findings and resolutions to confirm each fix holds, and the decision log.
 - **No material fix, `thorough`, and the latest full-target review found material findings** → run the **final full pass**: one unfocused cold reviewer running `/review-diff` in the round-1 mode over the whole target, briefed as in step 1.
 - **Otherwise** → converged; go to step 3.
 
-The next review's findings re-enter this step. Loop until converged — no hard round cap. Each round must fold in the previous round's findings, so the loop only continues while reviews keep surfacing genuinely new material problems. A material finding in a delta round that isn't a consequence of the previous round's fixes shows a gap in the round-1 brief; record it for the report's `Brief gaps` line. If the loop is **thrashing** — a resolved finding reappears, or reviews contradict each other — **halt and surface that** rather than looping through it, under either profile.
+The next review's findings re-enter this step. Loop until converged — no hard round cap. Each round must fold in the previous round's findings, so the loop only continues while reviews keep surfacing genuinely new material problems. If the loop is **thrashing** — a resolved finding reappears, or reviews contradict each other — **halt and surface that** rather than looping through it, under either profile.
 
-### Snapshots
+### No-commit mode
 
-A snapshot records the worktree — committed, staged, unstaged, and untracked — as a dangling commit, through a temporary index so the real index and every ref stay untouched:
+Under `no-commit`, skip every commit and push and keep the index exactly as found. The report lists files that are both staged and modified (`MM` in `git status --porcelain`) so the user can re-stage them.
+
+With no commits to diff, delta rounds review **snapshots**: the worktree — staged, unstaged, and untracked — recorded as a dangling commit through a temporary index, so the real index and every ref stay untouched. Take one at round 1 and at the end of each round with a material fix:
 
 ```bash
 idx="$(mktemp -d)/index"    # must not exist yet: git rejects a pre-created empty file
 GIT_INDEX_FILE="$idx" git read-tree HEAD    # keeps tracked files that match .gitignore
 GIT_INDEX_FILE="$idx" git add -A
 tree=$(GIT_INDEX_FILE="$idx" git write-tree)
-snap=$(git commit-tree "$tree" -p <parent> -m snapshot)
+snap=$(git commit-tree "$tree" -p <previous snapshot, or HEAD for the first> -m snapshot)
 ```
 
-Chaining each snapshot to the previous one makes `/review-diff <snapN> <snapN-1>` exactly the round's delta, in both committed and `no-commit` modes.
-
-### No-commit mode
-
-Under `no-commit`: skip every commit and push; keep the index exactly as found — snapshots go through their temporary index, and the loop runs no `git add`, `git rm --cached`, `git stash`, or `git restore --staged`. The report lists files that are both staged and modified (`MM` in `git status --porcelain`) so the user can re-stage them.
+Chaining each snapshot to the previous one makes `/review-diff <snapN> <snapN-1>` exactly the round's delta.
 
 ## Step 3 — Final verify
 
@@ -121,8 +119,7 @@ End with a compact summary:
       Review: <final verdict>; <R> rounds
       Findings: <N addressed, M pushed back>
       Final verify: <commands> — passed (e2e: <ran N passed / not run — reason>)
-      Brief gaps: <none | material delta-round findings that weren't fix consequences>
-      Decisions for user: <none | findings that would reverse a logged plan or user decision>
+      Decisions for user: <none | user decisions a finding would reverse; plan decisions reversed>
       Re-stage: <MM files>                      (no-commit only)
       Fallbacks: <none | which preferred path you couldn't take, and why>
 
@@ -132,10 +129,10 @@ If the loop halted (thrashing reviews, red final verify, a dirty tree blocking t
 
 ## Guardrails
 
-- **Fresh eyes, every dimension.** Round 1 fans out cold reviewers so you critique the diff, not your own rationalizations, and design gets the same depth as correctness — a fallback taken silently looks identical to one never needed.
+- **Fresh eyes, every dimension.** A cold reviewer critiques the diff, not your own rationalizations, and gives design the same depth as correctness — a fallback taken silently looks identical to one never needed.
 - **Don't suppress your own review.** Findings are addressed or explicitly pushed back with reasoning — never silently dropped to reach "done".
 - **Converge, don't cap.** The loop ends when a review stops finding material problems, not on a fixed round count. Surface thrashing — a resolved finding reappearing, or reviews contradicting each other — rather than looping through it.
-- **Decisions hold.** A finding that reverses a logged plan or user decision goes to the user, not into the code.
+- **User decisions hold.** A finding that reverses one goes to the user, not into the code; plan decisions yield to a better argument, reported.
 - **The profile tunes effort, not rigor.** `lean` cuts repeated self-verification; it never skips a review, drops a finding, or ships past a red gate.
 - **Green at the end.** The final verify is a hard gate — a red result halts and surfaces, it does not get reported as shipped.
 - **Don't widen scope.** If addressing a finding tempts a refactor nobody asked for, surface it and ask.
