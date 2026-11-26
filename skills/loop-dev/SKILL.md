@@ -15,7 +15,7 @@ Invoking `/loop-dev` authorizes the whole pipeline — planning, branching, comm
 
 `lean` and `thorough` are **reserved directive tokens** setting how much this pipeline's convergence loops repeat — `/loop-plan`'s, the step 3 document loop, and `/loop-revise`'s (via `/ship-pr`). Because `ARGUMENTS` here is free prose, strip `lean` / `thorough` from either **end**, case-insensitively and **repeatedly**, until neither end is one — matching mid-sentence would mangle a request like "make the build lean". `draft` is stripped only from the **trailing** end, and only when what remains still reads as a complete request: `/loop-dev draft an RFC for X` is a document request, not a draft-PR directive. When the reading is genuinely ambiguous ("write the RFC draft"), keep the token in the request and say so in the step 5 report — a missed `draft` costs a non-draft PR, a mangled request costs the whole run.
 
-Resolve it once — an explicit token wins; otherwise `lean` on Claude Opus 5 or newer, or on Claude Sonnet 5.5 or newer at `xhigh` effort or higher, `thorough` otherwise (including when the model or effort can't be determined) — then forward it to `/loop-plan` and `/ship-pr` so every stage runs the same one. `/loop-revise`'s **Review profile** table defines what each changes.
+Resolve it once — an explicit token wins; otherwise `lean` on Claude Opus 5 or newer, or on Claude Sonnet 5.5 or newer, `thorough` otherwise (including when the model can't be determined) — then forward it to `/loop-plan` and `/ship-pr` so every stage runs the same one. `/loop-revise`'s **Review profile** table defines what each changes.
 
 ## Step 1 — Plan
 
