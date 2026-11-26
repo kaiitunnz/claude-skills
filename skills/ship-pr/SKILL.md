@@ -84,7 +84,7 @@ End with a compact pipeline summary:
       Commits: <N> (<short-hash> <subject> …)
       PR:      <url>  [draft]
       Review:  <final verdict> (<profile>); <N findings addressed, M pushed back>
-      Decisions for user: <none | findings that would reverse a logged decision>
+      Decisions for user: <none | user decisions a finding would reverse; plan decisions reversed>
       Fallbacks: <none | which preferred path you couldn't take, and why>
 
     <PR URL on its own line>

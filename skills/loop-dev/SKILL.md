@@ -55,7 +55,7 @@ Pick the fitting endpoint from repo context; don't ask unless the choice is genu
 
 ## Step 5 — Final report
 
-End with a compact summary: the plan path, the branch, what was implemented, the verify result, the endpoint (PR URL / local branch / workspace), and any preferred path you couldn't take, with the reason. **Surface any `Decisions for user` from the revise phase** — findings left unapplied because they would reverse a logged decision. **Surface `/verify-impl`'s e2e status** — ran (result) or not run (reason) — so a gap in end-to-end coverage is visible rather than assumed. If the pipeline halted early, report where, why, and the exact next action.
+End with a compact summary: the plan path, the branch, what was implemented, the verify result, the endpoint (PR URL / local branch / workspace), and any preferred path you couldn't take, with the reason. **Surface any `Decisions for user` from the revise phase** — user decisions a finding would reverse, and plan decisions it reversed. **Surface `/verify-impl`'s e2e status** — ran (result) or not run (reason) — so a gap in end-to-end coverage is visible rather than assumed. If the pipeline halted early, report where, why, and the exact next action.
 
 ## Guardrails
 
