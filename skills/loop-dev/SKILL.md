@@ -42,7 +42,7 @@ Bound the fix→re-verify loop sensibly (a few rounds); if checks stay red for a
 
 ## Step 4 — Ship
 
-Run `/ship` (passing `draft` through when given, the `e2e` directive when the plan called for e2e, and the resolved review profile), and state in the invocation prose — not as `ARGUMENTS`, which takes directive tokens only — the branch, base, and last verify result you already established, so it doesn't re-derive them. It drives verify → commit → push → open PR → revise (self-review → address findings → final verify, via `/loop-revise`) — forwarding `e2e` and the profile down that chain.
+Run `/ship` (passing `draft` through when given, the `e2e` directive when the plan called for e2e, and the resolved review profile), and state in the invocation prose — not as `ARGUMENTS`, which takes directive tokens only — the branch, base, and last verify result you already established, so it doesn't re-derive them, and the plan path, whose decision log `/loop-revise` carries to its reviewers. It drives verify → commit → push → open PR → revise (self-review → address findings → final verify, via `/loop-revise`) — forwarding `e2e` and the profile down that chain.
 
 **Adjust the final deliverable to fit the work** — this is the one judgment call the skill makes autonomously:
 
