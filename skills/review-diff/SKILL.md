@@ -10,7 +10,6 @@ Review a local diff rigorously. The user wants a critical, no-padding review tha
 - **Focus** — one or more checklist groups (Correctness, Design, Tests and docs). Sweep those groups exhaustively; report other-group findings only when you notice them in passing. Without a focus, every group is in scope.
 - **Decision log** — settled decisions and earlier push-backs, each with its reason. Re-raise a logged decision only with a new argument against its recorded reason, naming the entry you challenge. A poor implementation of a settled decision is still a finding.
 - **Prior findings and their resolutions** — confirm each fix holds, and read the blast radius of what it touched: callers, tests, and docs of each touched symbol.
-- **Resolved base** — use it as given and skip the fetch in step 1.
 - **Stated purpose** — the change's purpose (e.g. a PR summary); it is the intent signal in step 2.
 
 ## Step 1 — Resolve the diff source
@@ -27,7 +26,7 @@ Parse `ARGUMENTS` into one of these modes:
 
 "+ untracked" means also list `git ls-files --others --exclude-standard` and read each listed file in full, since `git diff` never shows untracked content.
 
-`<target>` and `<base>` can each be `HEAD`, a branch name, or a commit hash. Treat them as opaque revisions and pass them through to git verbatim; let git resolve and complain. The default `<base>` is the remote default branch, fetched fresh: `git fetch origin <default>` (default from `gh repo view --json defaultBranchRef -q .defaultBranchRef.name`, else `main`), then `origin/<default>`. If the fetch fails, use the local `<default>` and say so in the report — a stale base pulls unrelated merged work into the review. The three-dot range and `all`'s merge base keep a base that moved on after the branch forked from adding anything either.
+`<target>` and `<base>` can each be `HEAD`, a branch name, or a commit hash. Treat them as opaque revisions and pass them through to git verbatim; let git resolve and complain. The default `<base>` is the remote default branch, fetched fresh: `git fetch origin <default>` (default from `gh repo view --json defaultBranchRef -q .defaultBranchRef.name`, else `main`), then `origin/<default>`. If the fetch fails, use the local `<default>` and say so in the report — a stale base pulls unrelated merged work into the review. Diffing from the merge base (three-dot range, `all`) keeps commits the base gained after the branch forked out of the review.
 
 Before reading the diff:
 
@@ -35,8 +34,6 @@ Before reading the diff:
 - For range and `all` modes, confirm the revisions resolve via `git rev-parse --verify`. If any fails, stop with the underlying error.
 - For range mode, run `git log <base>..<target> --oneline` and check there is at least one commit ahead. If zero, stop with: "No commits between `<base>` and `<target>`."
 - For `all` mode, stop with "Nothing to review" only when there are no commits ahead, the diff is empty, and nothing is untracked.
-
-Leave the checkout, worktree, and index as found; fetching remote refs is the one write this skill makes.
 
 ## Step 2 — Understand the intent
 
@@ -66,7 +63,7 @@ For each file changed, prefer reading the **full file** via the Read tool when t
 
 Review the whole diff: every hunk is in scope, whichever commit or author introduced it.
 
-**Inventory sweep.** Before the checklist, list every type, function, field, module, config key, and test file the change adds, moves, or renames — one todo each. Check each item for placement, signature, naming, and tests (under a focus, against the focused groups). The sweep is done when every item is accounted for.
+**Inventory sweep.** Before the checklist, list every type, function, field, module, config key, and test file the change adds, moves, or renames — one todo each. On a large diff, nest these under the area todos. Check each item for placement, signature, naming, and tests (under a focus, against the focused groups). The sweep is done when every item is accounted for.
 
 Then work the checklist:
 
@@ -79,7 +76,7 @@ Then work the checklist:
 - **Failure semantics:** `None`/absent meaning both "unknown" and "empty" (fails open); one unreadable persisted value breaking a listing of every record; operator misconfiguration accepted silently instead of refused at startup.
 - Security issues at trust boundaries (input validation, secrets handling, command injection).
 - Performance regressions on hot paths (N+1, redundant I/O, unbounded loops).
-- For worktree mode specifically: half-finished refactors, stray debug prints/`console.log`, leftover `// TODO` markers that the user probably meant to resolve before committing.
+- For worktree and `all` modes: half-finished refactors, stray debug prints/`console.log`, leftover `// TODO` markers that the user probably meant to resolve before committing.
 
 **Design**
 - **Placement:** each item sits beside its peers, where the codebase keeps similar types, clients, and settings; a core module imports no integration module; code follows its directory's convention (e.g. no data type in a directory that holds only one kind of component).
@@ -153,8 +150,7 @@ Rules for the output:
 
 ## Guardrails
 
-- **Read-only.** Leave code, the index, and the checkout as found — no commit, push, stage, or edit. Fetching remote refs is the one write allowed.
+- **Read-only.** Leave code, the index, and the checkout as found — no commit, push, stage, edit, branch switch, or checkout; range and `all` modes read revisions in place. Fetching remote refs is the one write allowed.
 - **Do not run the project's test suite** unless the user explicitly asks — reviews are about reading, not running.
 - **Do not invent findings.** Generate candidates freely in step 3; report only what survives step 4.
 - **Verify before reporting.** Every finding is confirmed against the actual source and its call sites (read them, don't just grep), and every condition is checked for inversion. Unverified suspicions are dropped, not reported — or downgraded to an explicit question.
-- **Do not switch branches or check anything out.** Range and `all` modes review revisions without altering the working tree.

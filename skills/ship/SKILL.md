@@ -71,9 +71,9 @@ Capture the PR URL — the self-review and final report need it.
 
 ## Step 6 — Revise (self-review → address → verify)
 
-Run `/loop-revise` on the open PR (pass the PR number/URL from step 5, plus the `e2e` directive when it was given and the `lean` / `thorough` directive when one was given), and forward a caller's plan path in the invocation prose so its decision log reaches the reviewers. It reviews what you just shipped with fresh eyes, drives every finding to resolution — re-verifying, committing, and pushing each round, looping until the review converges — and closes with a final full-verify gate. Read its report: the final verdict, the findings addressed/pushed back, and the final verify result feed step 7.
+Run `/loop-revise` on the open PR (pass the PR number/URL from step 5, plus the `e2e` directive when it was given and the `lean` / `thorough` directive when one was given), and forward a caller's plan path in the invocation prose so its decision log reaches the reviewers. It reviews what you just shipped with fresh eyes, drives every finding to resolution — re-verifying, committing, and pushing each round, looping until the review converges — and closes with a final full-verify gate. Read its report: the final verdict, the findings addressed/pushed back, the final verify result, and any `Decisions for user` or `Brief gaps` feed step 7.
 
-If `/loop-revise` isn't installed, do its work inline following the principles it names: fan round 1 out to cold-context subagents, one per review focus (Correctness, Design, Tests and docs), each running `/review-diff all <base>` against the fetched base (else inline, one pass per focus — name which), briefed with the PR's stated purpose and the decision log rather than the author's change list; address findings with `/address-review` (fix what's right with a consequence sweep, push back with reasoning on what isn't, don't widen scope); re-verify, commit, and push each round; re-review only each round's delta; then run a final full verify as a hard gate before continuing. Loop until no material finding remains rather than to a fixed round count, and surface thrashing. Resolve the profile as `/loop-revise` would — an explicit directive, else `lean` on Claude Opus 5 or newer, else `thorough` — and apply it: `thorough` adds one final full cold pass and always runs the closing verify; `lean` converges on the first round with no material finding open, and runs the closing verify only when code changed since the last full green.
+If `/loop-revise` isn't installed, do its work inline: `git fetch origin <base>` once, then review with cold subagents running `/review-diff all origin/<base>` (else inline — name which), briefed with the PR's stated purpose and the decision log; address findings with `/address-review`; re-verify, commit, and push each round; re-review each round's fixes until a round produces no material fix, surfacing thrashing — under `thorough`, add one final full cold pass; then run a final full verify as a hard gate (under `lean`, only if code changed since the last full green).
 
 ## Step 7 — Final report
 
@@ -84,6 +84,7 @@ End with a compact pipeline summary:
       Commits: <N> (<short-hash> <subject> …)
       PR:      <url>  [draft]
       Review:  <final verdict> (<profile>); <N findings addressed, M pushed back>
+      Decisions for user: <none | findings that would reverse a logged decision>
       Fallbacks: <none | which preferred path you couldn't take, and why>
 
     <PR URL on its own line>

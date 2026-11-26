@@ -56,7 +56,7 @@ For each file changed, prefer reading the **full file** via the Read tool when t
 
 Review the whole diff: every hunk is in scope, whichever commit or author introduced it.
 
-**Inventory sweep.** Before the checklist, list every type, function, field, module, config key, and test file the PR adds, moves, or renames — one todo each. Check each item for placement, signature, naming, and tests (under a focus, against the focused groups). The sweep is done when every item is accounted for.
+**Inventory sweep.** Before the checklist, list every type, function, field, module, config key, and test file the PR adds, moves, or renames — one todo each. On a large PR, nest these under the area todos. Check each item for placement, signature, naming, and tests (under a focus, against the focused groups). The sweep is done when every item is accounted for.
 
 Then work the checklist:
 

@@ -120,7 +120,7 @@ Skills are intentionally written as **prose instructions**, not code — they de
 ## Conventions across skills
 
 - **Read before acting.** Development skills survey relevant repo state (`git status`, recent commits, project conventions in `AGENTS.md` / `CLAUDE.md` / `CONTRIBUTING.md`). For questions and decisions, skills like `thinking-partner` consult relevant material before making recommendations.
-- **Stage, don't commit.** `address-ci-failures` and `address-review` leave changes in the worktree and hand off to `make-commits`.
+- **Hand off, don't commit.** `address-ci-failures` and `address-review` leave changes in the worktree and hand off to `make-commits`.
 - **Render, don't post.** `address-review` drafts replies in chat; the user posts them.
 - **Surface, don't bypass.** No `--no-verify`, no auto-`--amend`, no auto-stash, no `--force` without `--with-lease`. When a step is ambiguous, the skill stops and asks.
 - **Say which path you took.** Every `prefer X, else Y` names the branch it took and why — a missing capability and a standing instruction that forbids one are different problems, and a fallback taken silently is indistinguishable from one never needed.
