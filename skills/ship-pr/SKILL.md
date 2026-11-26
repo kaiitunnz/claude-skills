@@ -1,13 +1,13 @@
 ---
-name: ship
-description: Take a finished branch all the way out — verify (pre-commit + full tests), commit, push, open a PR, then critically self-review and address every finding before reporting done. Orchestrates the other git/PR/review skills when they're installed and falls back to doing each step inline when they aren't. Optional arguments: `draft` opens the PR as a draft, `e2e` runs the end-to-end suite in the verify gate, `lean` / `thorough` selects how hard the revise loop works. Use when the user says "ship it", "/ship", or "take this to a PR".
+name: ship-pr
+description: Take a finished branch all the way out — verify (pre-commit + full tests), commit, push, open a PR, then critically self-review and address every finding before reporting done. Orchestrates the other git/PR/review skills when they're installed and falls back to doing each step inline when they aren't. Optional arguments: `draft` opens the PR as a draft, `e2e` runs the end-to-end suite in the verify gate, `lean` / `thorough` selects how hard the revise loop works. Use when the user says "ship it", "/ship-pr", or "take this to a PR".
 ---
 
 Drive a ready branch through the whole release path: **verify → commit → push → open PR → revise (self-review + address findings + final verify) → done**. This is an orchestrator. Each step has a dedicated skill; when that skill is installed, invoke it and treat it as authoritative for its step. When it isn't, do the step inline following the principles named here. Never duplicate a delegated skill's work — call it, read its output, move on.
 
 `ARGUMENTS` is optional and accepts three directives, in any order, all case-insensitive: `draft`, passed through to PR creation; `e2e`, which runs the end-to-end suite in the verify gate (step 2) and is forwarded to `/loop-revise` (step 6); and `lean` or `thorough`, forwarded to `/loop-revise` (step 6), whose **Review profile** table defines them. Anything else is an error — surface it and stop. That rule governs *directive tokens*; state a caller hands down in the invocation prose (branch, base, its last verify result, a plan path) is context, not an argument, and is not an error.
 
-Invoking `/ship` authorizes the full pipeline (including the push and the PR) and the cold-context review subagents step 6 relies on — a default that withholds subagents "unless the user asks" is satisfied by the invocation itself. Do **not** re-confirm each step. Do stop and surface whenever a step fails, is ambiguous, or wants to widen scope — the gates below are where the pipeline halts.
+Invoking `/ship-pr` authorizes the full pipeline (including the push and the PR) and the cold-context review subagents step 6 relies on — a default that withholds subagents "unless the user asks" is satisfied by the invocation itself. Do **not** re-confirm each step. Do stop and surface whenever a step fails, is ambiguous, or wants to widen scope — the gates below are where the pipeline halts.
 
 **Never end a turn mid-pipeline.** You are done only once you have emitted the step 7 report with its endpoint, or an explicit halt naming its reason — the **Surface every halt** guardrail lists the usual kinds. A sub-skill returning green is a gate result, not an endpoint; if you are about to stop and can name neither, you are still mid-pipeline, so continue.
 
@@ -27,7 +27,7 @@ Run in parallel:
 
 Hard stops:
 
-- **On the default branch** (current branch == base) — stop and ask for a branch name; `/ship` does not push features straight to `main`. Offer to create the branch off the current HEAD.
+- **On the default branch** (current branch == base) — stop and ask for a branch name; `/ship-pr` does not push features straight to `main`. Offer to create the branch off the current HEAD.
 - **Nothing to ship** — clean worktree *and* no commits ahead of base *and* no existing PR. Stop with "Nothing to ship."
 
 Then state the plan in one block: branch, base, what will be committed (or "already committed, N ahead"), the verify commands you'll run, whether a PR will be opened or an existing one updated.
@@ -59,7 +59,7 @@ If `/make-commits` pauses (author mismatch, pre-commit hook failure, ambiguous g
 ## Step 4 — Push
 
 - No upstream → `git push -u origin <branch>`. Otherwise `git push`.
-- If the branch already has an upstream and history was rewritten, **stop and ask** before any force-push; use `--force-with-lease`, never bare `--force`. (Plain `/ship` should not be rewriting history — if it is, something upstream went wrong; surface it.)
+- If the branch already has an upstream and history was rewritten, **stop and ask** before any force-push; use `--force-with-lease`, never bare `--force`. (Plain `/ship-pr` should not be rewriting history — if it is, something upstream went wrong; surface it.)
 - If push fails (rejected, no remote), surface the error and stop.
 
 ## Step 5 — Open or update the PR
@@ -94,7 +94,7 @@ If anything stopped the pipeline early, report where and why instead — what pa
 ## Guardrails
 
 - **Don't ship broken code.** A failed verify — the main gate (step 2) or the revise phase's re-verify and final gate (step 6, via `/loop-revise`) — halts the pipeline. No `--no-verify`, no skipping an existing test suite.
-- **Don't push to the default branch.** `/ship` always works on a feature branch.
+- **Don't push to the default branch.** `/ship-pr` always works on a feature branch.
 - **Don't force-push without asking**, and never bare `--force` — `--force-with-lease` only, after confirmation.
 - **Don't duplicate a PR.** Reuse the existing open PR for the branch.
 - **Don't suppress your own review.** Findings are addressed or explicitly pushed back with reasoning — never silently dropped to reach "done".

@@ -63,7 +63,7 @@ Actions / modifiers:
 Examples:
   ./install.sh                        # all skills -> ~/.agents/skills
   ./install.sh --both                 # all skills -> ~/.agents/skills and ~/.claude/skills
-  ./install.sh ship make-commits --claude
+  ./install.sh ship-pr make-commits --claude
   ./install.sh handoff teach --both   # third-party skills, by name
   ./install.sh 3rdparty/mattpocock/skills/engineering/tdd   # one the manifest omits, by path
   ./install.sh --project --both       # into ./.agents/skills and ./.claude/skills

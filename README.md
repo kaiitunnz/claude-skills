@@ -21,10 +21,10 @@ The format follows the emerging cross-agent convention also used by [`AGENTS.md`
 | [`memory-audit`](skills/memory-audit/SKILL.md) | Audit the shared cross-workspace memory store for stale, duplicate, and contradicting entries. Drafts specific edits and asks for batch approval before applying. |
 | [`write-prd`](skills/write-prd/SKILL.md) | Turn a rough product idea or feature request into a concrete product requirements document (PRD), defining users, prioritized scope, requirements, success metrics, and launch considerations before technical design or implementation. |
 | [`write-rfc`](skills/write-rfc/SKILL.md) | Expand a rough feature, architecture, product, process, or technical request into a concrete RFC/design proposal that enables informed technical decisions. |
-| [`ship`](skills/ship/SKILL.md) | End-to-end release: verify (pre-commit + tests) → commit → push → open PR → revise (self-review + address findings + final verify, via `loop-revise`). Orchestrates the other skills when installed, falls back to inline otherwise. Supports `draft`, `e2e`, and the `lean` / `thorough` review profile. |
-| [`loop-revise`](skills/loop-revise/SKILL.md) | Critical self-review → address findings → re-review loop, capped with a final full-verify gate. Round 1 fans out one cold reviewer per dimension; later rounds review only each round's delta, against a decision log carried from `loop-plan`. Targets an open PR or a local diff; the revision phase of `ship`, usable standalone. Supports `e2e`, `no-commit`, and the `lean` / `thorough` review profile. |
+| [`ship-pr`](skills/ship-pr/SKILL.md) | End-to-end release: verify (pre-commit + tests) → commit → push → open PR → revise (self-review + address findings + final verify, via `loop-revise`). Orchestrates the other skills when installed, falls back to inline otherwise. Supports `draft`, `e2e`, and the `lean` / `thorough` review profile. |
+| [`loop-revise`](skills/loop-revise/SKILL.md) | Critical self-review → address findings → re-review loop, capped with a final full-verify gate. Round 1 fans out one cold reviewer per dimension; later rounds review only each round's delta, against a decision log carried from `loop-plan`. Targets an open PR or a local diff; the revision phase of `ship-pr`, usable standalone. Supports `e2e`, `no-commit`, and the `lean` / `thorough` review profile. |
 | [`loop-plan`](skills/loop-plan/SKILL.md) | Iterate a request into a converged, written plan via a fresh-context review→revise loop (runs until reviews stop finding material issues). Any request type; autonomous, no plan mode, no approval gate. Supports the `lean` / `thorough` review profile. |
-| [`loop-dev`](skills/loop-dev/SKILL.md) | Full autonomous dev loop: `loop-plan` → branch → implement (with `make-commits`) → verify to green → `ship`. Branches on code vs. document deliverable; right-sizes the endpoint (PR / local branch / leave-as-is). Resolves the `lean` / `thorough` review profile once and forwards it to every stage. |
+| [`loop-dev`](skills/loop-dev/SKILL.md) | Full autonomous dev loop: `loop-plan` → branch → implement (with `make-commits`) → verify to green → `ship-pr`. Branches on code vs. document deliverable; right-sizes the endpoint (PR / local branch / leave-as-is). Resolves the `lean` / `thorough` review profile once and forwards it to every stage. |
 | [`loop-optimize`](skills/loop-optimize/SKILL.md) | Autonomous measured-improvement loop: explore the codebase and its harness → settle goal/metrics/scope/constraints/budget → baseline → iterate hypothesis → change → validate → evaluate → keep/reject → confirm winner. Adapts to the repo's own metrics; imposes no fixed schema. Leaves the winner on a branch — doesn't ship. |
 | [`babysit-prs`](skills/babysit-prs/SKILL.md) | One idempotent sweep over your open PRs — bring stale branches current, fix CI (`address-ci-failures`), address review feedback (`address-review`), re-verify, report per-PR status. Acts only on your PRs; never force-pushes, merges, or posts replies. Pair with `/loop` or `/schedule`. |
 
@@ -38,10 +38,10 @@ The format follows the emerging cross-agent convention also used by [`AGENTS.md`
 - **Behind on main:** `rebase-main`
 - **Green before pushing:** `verify-impl` (checks + tests) then `review-diff`
 - **Self-review before pushing:** `review-diff` (worktree) or `review-pr` (after push)
-- **Whole branch out the door:** `ship` (runs the verify → commit → push → PR → `loop-revise` chain end to end)
-- **Request → shipped, hands-off:** `loop-dev` (plans via `loop-plan`, then branch → implement → verify → `ship`)
+- **Whole branch out the door:** `ship-pr` (runs the verify → commit → push → PR → `loop-revise` chain end to end)
+- **Request → shipped, hands-off:** `loop-dev` (plans via `loop-plan`, then branch → implement → verify → `ship-pr`)
 - **Product idea → technical design:** `write-prd` → `write-rfc` (align product scope and success measures, then turn the approved product direction into a technical design as needed)
-- **Make it faster / better, measured:** `loop-optimize` (baseline → hypothesize → change → evaluate → keep/reject on the repo's own harness; leaves the winner on a branch for `ship`)
+- **Make it faster / better, measured:** `loop-optimize` (baseline → hypothesize → change → evaluate → keep/reject on the repo's own harness; leaves the winner on a branch for `ship-pr`)
 - **Keep open PRs green:** `/loop <interval> /babysit-prs` (recurring sweep: update branch → fix CI → address review → re-verify → report)
 
 ## Install
@@ -52,7 +52,7 @@ The format follows the emerging cross-agent convention also used by [`AGENTS.md`
 ./install.sh                          # all skills -> ~/.agents/skills (default)
 ./install.sh --both                   # -> ~/.agents/skills and ~/.claude/skills
 ./install.sh --claude                 # Claude Code only
-./install.sh ship make-commits --both # a chosen subset
+./install.sh ship-pr make-commits --both # a chosen subset
 ./install.sh --project --both         # project scope: ./.agents/skills, ./.claude/skills
 ./install.sh --target ~/some/dir      # any directory (repeatable)
 ./install.sh --uninstall --both       # remove this repo's symlinks
@@ -124,7 +124,7 @@ Skills are intentionally written as **prose instructions**, not code — they de
 - **Render, don't post.** `address-review` drafts replies in chat; the user posts them.
 - **Surface, don't bypass.** No `--no-verify`, no auto-`--amend`, no auto-stash, no `--force` without `--with-lease`. When a step is ambiguous, the skill stops and asks.
 - **Say which path you took.** Every `prefer X, else Y` names the branch it took and why — a missing capability and a standing instruction that forbids one are different problems, and a fallback taken silently is indistinguishable from one never needed.
-- **Invoking a skill authorizes what it defines.** `ship` and `loop-dev` say so for their pipelines; the loops say so for the subagent reviews they specify, so a harness default that withholds subagents "unless the user asks" is satisfied by the invocation. Never a blanket licence to delegate, and a user instruction against subagents still wins.
+- **Invoking a skill authorizes what it defines.** `ship-pr` and `loop-dev` say so for their pipelines; the loops say so for the subagent reviews they specify, so a harness default that withholds subagents "unless the user asks" is satisfied by the invocation. Never a blanket licence to delegate, and a user instruction against subagents still wins.
 - **A gate is not an endpoint.** A skill that invokes other skills as steps finishes on an endpoint or its own final report, never mid-pipeline — and a callee's "nothing else after that" bounds its output, not the caller's pipeline. The rules are written against position, not identity: a callee asks whether *another skill* invoked it rather than the user, so no skill carries a list of its callers to go stale. A green `verify-impl` is a gate result and hands control back.
 - **No invented findings.** Reviews are short when the diff is clean; audits are silent when memory is healthy.
 - **Review profile.** The convergence loops (`loop-plan`, `loop-revise`, and the pipelines driving them) take a `lean` / `thorough` directive. `thorough` keeps the belt-and-braces behavior these skills were written with; `lean` drops the repeated self-verification a strongly self-correcting model already does on its own. It defaults to `lean` on Claude Opus 5 and newer and `thorough` everywhere else — including when the model can't be determined, so the fallback is the safer one. Gates stay gates either way: thrashing halts, red halts, findings are addressed or explicitly pushed back.
