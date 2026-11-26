@@ -1,11 +1,13 @@
 ---
 name: review-pr
-description: Review a pull request for correctness, code cleanliness, and compliance with the project's coding guidelines. Optional PR number or URL — defaults to the PR for the current branch. Checks out the PR locally, reads the description (or infers intent from the diff), surfaces real issues without padding, and ends with a clear merge verdict. Use when the user says "review this PR", "/review-pr", or pastes a PR link asking for a review.
+description: Review a pull request for correctness, design, tests and docs, and compliance with the project's coding guidelines. Optional PR number or URL — defaults to the PR for the current branch. Checks out the PR locally, reads the description (or infers intent from the diff), surfaces real issues without padding, and ends with a clear merge verdict. Use when the user says "review this PR", "/review-pr", or pastes a PR link asking for a review.
 ---
 
-Review a pull request rigorously. The user wants a critical, no-padding review focused on **correctness**, **coding style**, and other concrete issues — not generic praise, not a summary of the diff.
+Review a pull request rigorously. The user wants a critical, no-padding review that weighs **design** and **tests and docs** as heavily as **correctness** — not generic praise, not a summary of the diff.
 
 `ARGUMENTS` is optional: a PR number (e.g. `42`) or a GitHub URL. If absent, review the PR for the current branch.
+
+If the user names settled decisions with their reasons, re-raise one only with a new argument against its reason; a poor implementation of a settled decision is still a finding.
 
 ## Step 1 — Resolve and check out the PR
 
@@ -50,7 +52,9 @@ For each file changed, prefer reading the **full file** via the Read tool when t
 
 Review the whole diff: every hunk is in scope, whichever commit or author introduced it.
 
-While reading, look for:
+**Inventory sweep.** Before the checklist, list each module, type, public function, and file the PR adds, moves, or renames (for prose, each new section or page), and check each for placement, signature, naming, and tests or docs. The sweep is done when every listed item is checked.
+
+Then work the checklist:
 
 **Correctness**
 - Logic errors, off-by-one, wrong operator, swapped arguments, wrong default.
@@ -58,25 +62,29 @@ While reading, look for:
 - Race conditions, missing `await`, unhandled exceptions in async paths; a check-then-act guard that narrows a race window instead of removing the race.
 - Broken contracts: function signature change without callsite updates; schema/migration drift; API contract change without client/test update.
 - Dead or unreachable code introduced by the change.
-- Tests that don't actually exercise the new behavior (asserts on irrelevant fields, missing the failure case the bug fix was about, etc.).
-
-**Coding style**
-- Departures from the conventions stated in `AGENTS.md` / `CLAUDE.md` / lint configs.
-- Comments that restate the code, narrate the task, or reference the current PR ("added for X") — flag them per the project's comment policy.
-- Premature abstractions, unused parameters/types, dead imports.
-- Naming that obscures intent.
-- New dependencies or backwards-compat shims that the change doesn't actually need.
-- **Organization:** code placed against the convention of its directory or module (e.g. a data type in a directory that holds only one kind of component); logic repeated where an existing seam fits — a helper, an accessor, a method on the owning type.
-- **Structure:** sibling branches that repeat a condition and should nest; a numbered sequence (step comments, list items, headings) left with a gap or out of order after the edit.
-- **Consistency:** a flag or setting one new declaration carries that its siblings don't, or the reverse; a term the change introduces or renames that a doc, docstring, schema description, or log string still spells the old way — grep for it.
-
-**Others**
+- **Failure semantics:** one null/absent value meaning both "unknown" and "empty" (fails open); one bad item aborting a whole batch or listing; invalid configuration or input accepted silently instead of rejected early.
 - Security issues at trust boundaries (input validation, secrets handling, command injection).
 - Performance regressions on hot paths (N+1, redundant I/O, unbounded loops).
-- Test coverage gaps for the new behavior.
-- Documentation drift if the PR changes public API or user-visible behavior.
-- **Doc fit:** each doc carries the detail its reader acts on. Implementation internals stay out of user-facing docs, in whatever developer docs or code the project keeps them; a passing caveat stays a clause rather than growing into its own paragraph or section; a paragraph that doesn't serve the doc's reader is cut.
+
+**Design**
+- **Placement:** each new or moved item sits beside its peers and follows its directory's convention (e.g. no data type in a directory that holds only one kind of component); imports follow the codebase's dependency direction.
+- **Signatures:** a parameter or default only tests use; a value converted at a boundary and converted back; the same value optional in one layer and required in another; an interface parameter its implementations ignore.
+- **Reuse:** logic reimplemented inline where an existing seam fits — a helper, an accessor, a method on the owning type.
+- Naming that obscures intent.
+- Departures from the conventions stated in `AGENTS.md` / `CLAUDE.md` / lint configs.
+- Comments that restate the code, narrate the task, or reference the current PR ("added for X") — flag them per the project's comment policy.
+- Premature abstractions, unused parameters/types, dead imports; new dependencies or backwards-compat shims the change doesn't need.
+- **Structure:** sibling branches that repeat a condition and should nest; a numbered sequence (step comments, list items, headings) left with a gap or out of order after the edit.
+- **Consistency:** a flag or setting one new declaration carries that its siblings don't, or the reverse; a term the change introduces or renames that a doc, docstring, schema description, or log string still spells the old way — grep for it.
+- **User-facing text:** errors and messages that expose internals (raw exception reprs, internal names) instead of telling the user what to do.
 - Out-of-scope churn bundled into the same PR.
+
+**Tests and docs**
+- A test whose assertions would still hold with the fix removed is not coverage — asserts on irrelevant fields, or misses the failure case the bug fix was about.
+- Coverage gaps for the new behavior.
+- Tests follow the project's existing layout; shared fixtures rather than copies, which drift; tests through public seams rather than private state.
+- Documentation drift if the PR changes public API or user-visible behavior; doc examples are correct — check or run them.
+- **Doc fit:** each doc carries the detail its reader acts on. Implementation internals stay out of user-facing docs, in whatever developer docs or code the project keeps them; a caveat lives in the doc that owns it and others link to it; a passing caveat stays a clause rather than growing into its own paragraph or section; a paragraph that doesn't serve the doc's reader is cut.
 
 Be **critical and direct**. Surface real issues plainly without softening. Note every concern you genuinely notice, including ones you aren't yet sure about — step 4 is where candidates get verified and filtered, so don't hold one back here to keep the list short. If the PR is clean, say so.
 
@@ -93,7 +101,9 @@ For each candidate:
 
 Drop any finding that doesn't survive this check. A surviving finding must cite the concrete evidence — the `path:line`, the caller you read, the branch you traced — so the author can confirm it the same way. If you're still unsure after verifying, report it as a question, not a defect.
 
-This is the only place findings get filtered, and it filters hard: a short review with two verified issues is better than a long review with eight unverified ones. Keep pure-taste preferences out. A departure from a stated project convention, or an organization, structure, consistency, or doc-fit problem you can tie to an established pattern elsewhere in the repo or a concrete cost to a reader or maintainer, is a finding, not a nitpick.
+This is the only place findings get filtered, and it filters hard: a short review with two verified issues is better than a long review with eight unverified ones. Keep pure-taste preferences out. A departure from a stated project convention, or a Design or Tests-and-docs problem you can tie to an established pattern elsewhere in the repo or a concrete cost to a reader or maintainer, is a finding, not a nitpick.
+
+Tag each surviving finding **material** — the author should act on it before merging — or **optional** — deferring it has no concrete cost.
 
 ## Step 5 — Report
 
@@ -104,24 +114,25 @@ Output in this exact structure:
     **Executive summary:** 1–3 sentences. State what the PR does and the headline reason for the verdict.
 
     ### Correctness
-    1. <issue, with `path:line` citation>. *Recommended action:* <concrete fix>.
+    1. [material] <issue, with `path:line` citation>. *Recommended action:* <concrete fix>.
     2. …
 
-    ### Coding style
-    3. …
+    ### Design
+    3. [optional] …
 
-    ### Others
+    ### Tests and docs
     4. …
 
 Rules for the output:
 
 - **Number findings continuously across all three sections** (1, 2, 3, …) — do not restart at 1 in each section — so any finding has a unique number to reference later ("issue 3"). When a section starts mid-count, begin its ordered list at the next number; the markdown renderer honors the starting ordinal.
+- Open every item with its `[material]` or `[optional]` tag.
 - Cite `path:line` for every finding so the author can jump to it.
 - Each item ends with a one-sentence "Recommended action" the author (or you, on a follow-up) can act on.
 - Omit a section entirely if it has zero findings — do not write "no issues" inside a section. If all three are empty, state that directly under the summary and skip the headers.
 - The verdict ladder:
-  - **Ready to merge** — no finding the author should act on; anything left is marked *(optional)* in its Recommended action because deferring it has no concrete cost.
-  - **Needs changes** — at least one verified finding the author should act on: a correctness issue, a convention departure, or an organization, structure, consistency, or doc-fit problem.
+  - **Ready to merge** — no material findings.
+  - **Needs changes** — at least one material finding.
   - **Major rework required** — fundamental design problem, broken contract, or the diff doesn't match the stated intent.
 - Don't fabricate findings. Don't open with "Overall, this is a great PR." Don't end with a "happy to discuss" footer.
 

@@ -1,9 +1,16 @@
 ---
 name: review-diff
-description: Review a local diff for correctness, code cleanliness, and compliance with the project's coding guidelines. Args select the diff source — `unstaged`, `staged`, or a `<target> [<base>]` range (defaulting `<base>` to `main`). With no args, reviews both staged and unstaged worktree changes (`git diff HEAD`). Surfaces real issues without padding and ends with a ship/iterate verdict. Use when the user says "review my changes", "/review-diff", or wants a critique of work-in-progress code before committing.
+description: Review a local diff for correctness, design, tests and docs, and compliance with the project's coding guidelines. Args select the diff source — `unstaged`, `staged`, `all [<base>]` (the whole branch including uncommitted and untracked work), or a `<target> [<base>]` range (defaulting `<base>` to the fetched remote default branch). With no args, reviews staged, unstaged, and untracked worktree changes. Surfaces real issues without padding and ends with a Looks good / Needs changes / Major rework verdict. Use when the user says "review my changes", "/review-diff", or wants a critique of work-in-progress code before committing.
 ---
 
-Review a local diff rigorously. The user wants a critical, no-padding review focused on **correctness**, **coding style**, and other concrete issues — not generic praise, not a summary of the diff.
+Review a local diff rigorously. The user wants a critical, no-padding review that weighs **design** and **tests and docs** as heavily as **correctness** — not generic praise, not a summary of the diff.
+
+**Caller context.** A caller (another skill, or the user in prose) may hand down, besides the mode arguments:
+
+- **Focus** — one or more checklist groups (Correctness, Design, Tests and docs). Sweep those groups exhaustively; report other-group findings only when you notice them in passing. Without a focus, every group is in scope.
+- **Decision log** — settled decisions and earlier push-backs, each with its reason. Re-raise a logged decision only with a new argument against its recorded reason, naming the entry you challenge. A poor implementation of a settled decision is still a finding.
+- **Prior findings and their resolutions** — confirm each fix holds, and read the blast radius of what it touched: callers, tests, and docs of each touched symbol.
+- **Stated purpose** — the change's purpose (e.g. a PR summary); it is the intent signal in step 2.
 
 ## Step 1 — Resolve the diff source
 
@@ -11,28 +18,30 @@ Parse `ARGUMENTS` into one of these modes:
 
 | Args | Mode | Command |
 | --- | --- | --- |
-| (none) | worktree (combined) | `git diff HEAD` |
-| `unstaged` | worktree (unstaged only) | `git diff` |
+| (none) | worktree (combined) | `git diff HEAD` + untracked |
+| `unstaged` | worktree (unstaged only) | `git diff` + untracked |
 | `staged` | worktree (staged only) | `git diff --cached` |
-| `<target>` | range, base defaults to `main` | `git diff main..<target>` |
-| `<target> <base>` | range | `git diff <base>..<target>` |
+| `all [<base>]` | whole branch | `git diff $(git merge-base <base> HEAD)` + untracked |
+| `<target> [<base>]` | range | `git diff <base>...<target>` |
 
-`<target>` and `<base>` can each be `HEAD`, a branch name, or a commit hash. Treat them as opaque revisions and pass them through to git verbatim; let git resolve and complain.
+"+ untracked" means also list `git ls-files --others --exclude-standard` — `git diff` never shows untracked content — and read in full each listed file that belongs to the change (source, tests, docs, config); name any you skipped (data, build output, binaries) in the report.
+
+`<target>` and `<base>` can each be `HEAD`, a branch name, or a commit hash. Treat them as opaque revisions and pass them through to git verbatim; let git resolve and complain. The default `<base>` is the remote default branch, fetched fresh: `git fetch origin <default>` (default from `gh repo view --json defaultBranchRef -q .defaultBranchRef.name`, else `main`), then `origin/<default>`. If the fetch fails, use the local `<default>` and say so in the report — a stale base pulls unrelated merged work into the review. Diffing from the merge base (three-dot range, `all`) keeps commits the base gained after the branch forked out of the review.
 
 Before reading the diff:
 
-- For worktree modes, confirm there is actually a diff. If `git diff HEAD` (or the relevant flag) is empty, stop with: "Nothing to review — worktree is clean."
-- For range modes, confirm `<target>` and `<base>` resolve via `git rev-parse --verify`. If either fails, stop with the underlying error.
-- For range modes, also run `git log <base>..<target> --oneline` and check there is at least one commit ahead. If zero, stop with: "No commits between `<base>` and `<target>`."
-
-Do **not** check out anything. This skill is read-only against the current worktree.
+- For worktree modes, confirm there is something to review: the mode's `git diff` or its untracked list is non-empty. Otherwise stop with: "Nothing to review — worktree is clean."
+- For range and `all` modes, confirm the revisions resolve via `git rev-parse --verify`. If any fails, stop with the underlying error.
+- For range mode, run `git log <base>..<target> --oneline` and check there is at least one commit ahead. If zero, stop with: "No commits between `<base>` and `<target>`."
+- For `all` mode, stop with "Nothing to review" only when there are no commits ahead, the diff is empty, and nothing is untracked.
 
 ## Step 2 — Understand the intent
 
-The signal depends on the mode:
+A stated purpose from the caller is the signal when given. Otherwise it depends on the mode:
 
 - **Range mode:** read commit messages — `git log <base>..<target> --no-merges` (or `--format='%H%n%s%n%n%b'`). They are the author's stated intent; the review should hold the diff against them. If commits are messy ("wip", "fix", "fix 2"), say so explicitly in the report and infer intent from the diff.
 - **Worktree mode:** no commit messages exist yet. Infer intent from the diff alone. State your inference at the top of the review so the user can correct it.
+- **`all` mode:** commit messages for the committed part; infer the uncommitted part and state that inference.
 
 Then read the repo's coding standards. Look for and read whichever exist:
 
@@ -50,11 +59,13 @@ For large diffs (≥ ~500 lines or ≥ ~10 files), use **TodoWrite** to track:
 - One todo per logical area or per file group.
 - Mark each in-progress while reading; completed when reviewed.
 
-For each file changed, prefer reading the **full file** via the Read tool when the diff alone hides context — bug-prone areas are usually at the boundary between added and unchanged code. The smaller scope of a diff review (vs. a full PR) is **not** a license to skim; it's a license to be more concrete.
+For each file changed, prefer reading the **full file** — at the target revision (`git show <target>:<path>`) when the target isn't the worktree — when the diff alone hides context — bug-prone areas are usually at the boundary between added and unchanged code. The smaller scope of a diff review (vs. a full PR) is **not** a license to skim; it's a license to be more concrete.
 
 Review the whole diff: every hunk is in scope, whichever commit or author introduced it.
 
-While reading, look for:
+**Inventory sweep.** Before the checklist, list each module, type, public function, and file the change adds, moves, or renames (for prose, each new section or page), and check each for placement, signature, naming, and tests or docs — under a focus, only the focused aspects, and not at all for a Correctness-only focus. The sweep is done when every listed item is checked.
+
+Then work the checklist:
 
 **Correctness**
 - Logic errors, off-by-one, wrong operator, swapped arguments, wrong default.
@@ -62,26 +73,30 @@ While reading, look for:
 - Race conditions, missing `await`, unhandled exceptions in async paths; a check-then-act guard that narrows a race window instead of removing the race.
 - Broken contracts: function signature change without callsite updates; schema/migration drift; API contract change without client/test update.
 - Dead or unreachable code introduced by the change.
-- Tests that don't actually exercise the new behavior (asserts on irrelevant fields, missing the failure case the bug fix was about, etc.).
-- For worktree mode specifically: half-finished refactors, stray debug prints/`console.log`, leftover `// TODO` markers that the user probably meant to resolve before committing.
-
-**Coding style**
-- Departures from the conventions stated in `AGENTS.md` / `CLAUDE.md` / lint configs.
-- Comments that restate the code, narrate the task, or reference the current change ("added for X") — flag them per the project's comment policy.
-- Premature abstractions, unused parameters/types, dead imports.
-- Naming that obscures intent.
-- New dependencies or backwards-compat shims that the change doesn't actually need.
-- **Organization:** code placed against the convention of its directory or module (e.g. a data type in a directory that holds only one kind of component); logic repeated where an existing seam fits — a helper, an accessor, a method on the owning type.
-- **Structure:** sibling branches that repeat a condition and should nest; a numbered sequence (step comments, list items, headings) left with a gap or out of order after the edit.
-- **Consistency:** a flag or setting one new declaration carries that its siblings don't, or the reverse; a term the change introduces or renames that a doc, docstring, schema description, or log string still spells the old way — grep for it.
-
-**Others**
+- **Failure semantics:** one null/absent value meaning both "unknown" and "empty" (fails open); one bad item aborting a whole batch or listing; invalid configuration or input accepted silently instead of rejected early.
 - Security issues at trust boundaries (input validation, secrets handling, command injection).
 - Performance regressions on hot paths (N+1, redundant I/O, unbounded loops).
-- Test coverage gaps for the new behavior.
-- Documentation drift if the change touches public API or user-visible behavior.
-- **Doc fit:** each doc carries the detail its reader acts on. Implementation internals stay out of user-facing docs, in whatever developer docs or code the project keeps them; a passing caveat stays a clause rather than growing into its own paragraph or section; a paragraph that doesn't serve the doc's reader is cut.
+- For worktree and `all` modes: half-finished refactors, stray debug prints/`console.log`, leftover `// TODO` markers that the user probably meant to resolve before committing.
+
+**Design**
+- **Placement:** each new or moved item sits beside its peers and follows its directory's convention (e.g. no data type in a directory that holds only one kind of component); imports follow the codebase's dependency direction.
+- **Signatures:** a parameter or default only tests use; a value converted at a boundary and converted back; the same value optional in one layer and required in another; an interface parameter its implementations ignore.
+- **Reuse:** logic reimplemented inline where an existing seam fits — a helper, an accessor, a method on the owning type.
+- Naming that obscures intent.
+- Departures from the conventions stated in `AGENTS.md` / `CLAUDE.md` / lint configs.
+- Comments that restate the code, narrate the task, or reference the current change ("added for X") — flag them per the project's comment policy.
+- Premature abstractions, unused parameters/types, dead imports; new dependencies or backwards-compat shims the change doesn't need.
+- **Structure:** sibling branches that repeat a condition and should nest; a numbered sequence (step comments, list items, headings) left with a gap or out of order after the edit.
+- **Consistency:** a flag or setting one new declaration carries that its siblings don't, or the reverse; a term the change introduces or renames that a doc, docstring, schema description, or log string still spells the old way — grep for it.
+- **User-facing text:** errors and messages that expose internals (raw exception reprs, internal names) instead of telling the user what to do.
 - Out-of-scope churn that should be split into a separate commit or change.
+
+**Tests and docs**
+- A test whose assertions would still hold with the fix removed is not coverage — asserts on irrelevant fields, or misses the failure case the bug fix was about.
+- Coverage gaps for the new behavior.
+- Tests follow the project's existing layout; shared fixtures rather than copies, which drift; tests through public seams rather than private state.
+- Documentation drift if the change touches public API or user-visible behavior; doc examples are correct — check or run them.
+- **Doc fit:** each doc carries the detail its reader acts on. Implementation internals stay out of user-facing docs, in whatever developer docs or code the project keeps them; a caveat lives in the doc that owns it and others link to it; a passing caveat stays a clause rather than growing into its own paragraph or section; a paragraph that doesn't serve the doc's reader is cut.
 
 Be **critical and direct**. Surface real issues plainly without softening. Note every concern you genuinely notice, including ones you aren't yet sure about — step 4 is where candidates get verified and filtered, so don't hold one back here to keep the list short. If the diff is clean, say so.
 
@@ -98,7 +113,9 @@ For each candidate:
 
 Drop any finding that doesn't survive this check. A surviving finding must cite the concrete evidence — the `path:line`, the caller you read, the branch you traced — so the user can confirm it the same way. If you're still unsure after verifying, report it as a question, not a defect.
 
-This is the only place findings get filtered, and it filters hard: a short review with two verified issues is better than a long review with eight unverified ones. Keep pure-taste preferences out. A departure from a stated project convention, or an organization, structure, consistency, or doc-fit problem you can tie to an established pattern elsewhere in the repo or a concrete cost to a reader or maintainer, is a finding, not a nitpick.
+This is the only place findings get filtered, and it filters hard: a short review with two verified issues is better than a long review with eight unverified ones. Keep pure-taste preferences out. A departure from a stated project convention, or a Design or Tests-and-docs problem you can tie to an established pattern elsewhere in the repo or a concrete cost to a reader or maintainer, is a finding, not a nitpick.
+
+Tag each surviving finding **material** — the user should act on it before shipping — or **optional** — deferring it has no concrete cost.
 
 ## Step 5 — Report
 
@@ -109,32 +126,32 @@ Output in this exact structure:
     **Executive summary:** 1–3 sentences. State what the diff does (or what you inferred it does) and the headline reason for the verdict.
 
     ### Correctness
-    1. <issue, with `path:line` citation>. *Recommended action:* <concrete fix>.
+    1. [material] <issue, with `path:line` citation>. *Recommended action:* <concrete fix>.
     2. …
 
-    ### Coding style
-    3. …
+    ### Design
+    3. [optional] …
 
-    ### Others
+    ### Tests and docs
     4. …
 
 Rules for the output:
 
 - **Number findings continuously across all three sections** (1, 2, 3, …) — do not restart at 1 in each section — so any finding has a unique number to reference later ("issue 3"). When a section starts mid-count, begin its ordered list at the next number; the markdown renderer honors the starting ordinal.
+- Open every item with its `[material]` or `[optional]` tag.
 - Cite `path:line` for every finding so the author can jump to it.
 - Each item ends with a one-sentence "Recommended action" the user can act on.
 - Omit a section entirely if it has zero findings — do not write "no issues" inside a section. If all three are empty, state that directly under the summary and skip the headers.
 - The verdict ladder:
-  - **Looks good** — no finding the user should act on; anything left is marked *(optional)* in its Recommended action because deferring it has no concrete cost.
-  - **Needs changes** — at least one verified finding the user should act on: a correctness issue, a convention departure, or an organization, structure, consistency, or doc-fit problem.
+  - **Looks good** — no material findings.
+  - **Needs changes** — at least one material finding.
   - **Major rework required** — fundamental design problem, broken contract, or the diff doesn't match the inferred or stated intent.
 - For worktree mode, "Looks good" implicitly means "fine to commit." Don't actually run `git commit` — the user decides.
 - Don't fabricate findings. Don't open with "Overall, this change looks great." Don't end with a "happy to discuss" footer.
 
 ## Guardrails
 
-- **Do not commit, push, stage, or modify code.** This skill is read-only.
+- **Read-only.** Leave code, the index, and the checkout as found — no commit, push, stage, edit, branch switch, or checkout; range and `all` modes read revisions in place. Fetching remote refs is the one write allowed.
 - **Do not run the project's test suite** unless the user explicitly asks — reviews are about reading, not running.
 - **Do not invent findings.** Generate candidates freely in step 3; report only what survives step 4.
 - **Verify before reporting.** Every finding is confirmed against the actual source and its call sites (read them, don't just grep), and every condition is checked for inversion. Unverified suspicions are dropped, not reported — or downgraded to an explicit question.
-- **Do not switch branches or check anything out.** Range mode reviews the diff between two revisions without altering the working tree.

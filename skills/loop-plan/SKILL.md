@@ -16,9 +16,9 @@ Invoking `/loop-plan` authorizes the exploration subagents in step 2 and the rev
 | | `lean` | `thorough` |
 | --- | --- | --- |
 | Converged when | first review with no material issues | that, or two consecutive rounds surfacing nothing new |
-| Re-review after revising | only after a substantive revision | every round |
+| Re-review after revising | only after a substantive revision | every round, except after a wording-only revision |
 
-An explicit token wins; otherwise `lean` on Claude Opus 5 or newer, `thorough` otherwise — including when the model can't be determined. The review itself is a cold read of the plan file under both profiles; that's the mechanism, not the dial.
+An explicit token wins; otherwise `lean` on Claude Opus 5 or newer, or on Claude Sonnet 5.5 or newer, `thorough` otherwise — including when the model can't be determined. The review itself is a cold read of the plan file under both profiles; that's the mechanism, not the dial.
 
 ## Step 1 — Understand the request
 
@@ -36,14 +36,20 @@ Write the plan to a **file** (in your scratchpad directory, or in the repo if th
 
 The plan states: the goals from step 1, the deliverable type, the ordered steps, the files/sections touched, the verification signal (tests to pass, or the review bar for prose), and the risks/open questions. When the request or the repo's convention calls for **end-to-end verification**, record that in the verification signal — it's what tells `/loop-dev` to pass the `e2e` directive down the gate chain.
 
+Add these sections where they apply:
+
+- **Interfaces and placement** — when the change adds or moves a module, type, or public function: its location and nearest peers, its signature (which parameters are required, and why), and what it does on absent or invalid input.
+- **Compatibility** — when the change alters something others depend on (a public API, CLI, file or data format, config, stored data): what breaks for existing users or data, and the migration path.
+- **Decision log** (every plan) — each decision, its reason, and whether the user or the plan made it. `/loop-revise` hands it to code reviewers, so a later review that would reverse a decision meets its reason instead of rediscovering the question.
+
 **Multi-agent organization.** Decide whether the work should fan out. If `/waypoint-workqueue` is available *and* the work is a batch of largely independent tasks at a scale one context can't hold well (migration, codemod, broad audit, many parallel edits), plan the workqueue split — lead vs. workers, task boundaries, how results merge — and record it in the plan. If `/waypoint-crew` is available *and* the work is a product/lifecycle-scale effort that needs durable multi-role Waypoint sessions, plan the crew shape, phase boundaries, dependency contracts, and checkpoint gates. Otherwise plan for a single context. Don't reach for a workqueue for tightly-coupled feature work, and don't reach for a crew for a bounded batch or one coherent change.
 
 ## Step 4 — Converge (review → revise loop)
 
 Loop until the plan converges — no hard round cap:
 
-1. **Review the plan — prefer a subagent.** If your harness can spawn a sub-agent with its own context, spawn a fresh one, point it at the plan file, and ask it to find *material* problems only — wrong approach, missed goals, unhandled cases, ordering hazards, unrealistic steps, risky assumptions. Explicitly tell it to skip nitpicks and style. Have it return a verdict plus a concrete findings list. If you can't delegate — no subagent capability, or a standing instruction against it — review inline against the plan file **re-read from disk**, judging only what it actually says rather than what you remember intending, and name the reason in your step 5 report.
-2. **Revise.** Fold every material finding into the plan file. Push back (in the plan's notes) on findings you disagree with, with reasoning — don't silently drop them. A revision that changed nothing substantive (a wording fix, a push-back recorded without a plan change) earns another round only per the profile's re-review rule.
+1. **Review the plan — prefer a subagent.** If your harness can spawn a sub-agent with its own context, spawn a fresh one, point it at the plan file, and ask it to find *material* problems only — wrong approach, missed goals, unhandled cases, ordering hazards, unrealistic steps, risky assumptions, and — for code deliverables — design problems: placement, signatures, failure semantics, compatibility, test layout. Explicitly tell it to skip nitpicks and style. Have it return a verdict plus a concrete findings list. If you can't delegate — no subagent capability, or a standing instruction against it — review inline against the plan file **re-read from disk**, judging only what it actually says rather than what you remember intending, and name the reason in your step 5 report.
+2. **Revise.** Fold every material finding into the plan file, recording each resulting decision and its reason in the decision log. Push back (in the plan's notes) on findings you disagree with, with reasoning — don't silently drop them. A revision that changed nothing substantive (a wording fix, a push-back recorded without a plan change) earns another round only per the profile's re-review rule.
 
 **Converged** per the profile's convergence rule. Each round must fold in the previous round's findings, so the loop only continues while reviews are still finding real problems — a stable plan ends it. If the loop is **thrashing** — a resolved finding reappears, or reviews contradict each other — halt and surface that rather than looping through it, under either profile.
 

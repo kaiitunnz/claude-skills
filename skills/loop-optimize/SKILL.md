@@ -92,7 +92,7 @@ A candidate that improves the metric but fails required correctness or constrain
 
 ## Step 6 — Leave and report the best result
 
-Leave the best confirmed candidate on the optimization branch. **Do not auto-ship or open a PR** — the user invokes the existing shipping workflow (`/ship`) separately. Report compactly:
+Leave the best confirmed candidate on the optimization branch. **Do not auto-ship or open a PR** — the user invokes the existing shipping workflow (`/ship-pr`) separately. Report compactly:
 
 ```text
 Optimization:   <goal>

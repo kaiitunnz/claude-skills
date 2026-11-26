@@ -1,9 +1,9 @@
 ---
 name: address-review
-description: Work through reviewer feedback on a PR systematically — accept or push back on each finding with reasoning, implement accepted ones, draft a per-finding reply to the reviewer. Optional argument is a PR number, PR URL, or a path/file containing pasted review text; defaults to the open PR for the current branch. Leaves changes staged for /make-commits; renders the reply draft in chat. Use when the user says "/address-review", "address this review", or pastes reviewer comments.
+description: Work through reviewer feedback on a PR systematically — accept or push back on each finding with reasoning, implement accepted ones, draft a per-finding reply to the reviewer. Optional argument is a PR number, PR URL, or a path/file containing pasted review text; defaults to the open PR for the current branch. Leaves changes unstaged for /make-commits; renders the reply draft in chat. Use when the user says "/address-review", "address this review", or pastes reviewer comments.
 ---
 
-Take a reviewer's findings and work through them one by one. Be **critical** — agree when they're right, push back when they're not, and only implement what's genuinely correct. The output is staged code changes plus a draft reply per finding for the user to post.
+Take a reviewer's findings and work through them one by one. Be **critical** — agree when they're right, push back when they're not, and only implement what's genuinely correct. The output is unstaged code changes plus a draft reply per finding for the user to post.
 
 `ARGUMENTS` is optional. Accepted forms, in resolution order:
 
@@ -16,6 +16,8 @@ Take a reviewer's findings and work through them one by one. Be **critical** —
 
 Detect in that exact order. A 3-line pasted review starting with `1.` is review text (rule 5), not a PR number (rule 2 requires the *entire* argument to match `^\d+$`).
 
+**Invoked by another skill** (e.g. a review loop): take the findings as the review text the caller hands over, skip the parsed-list echo in step 2 and the reply draft in step 5, and return each finding's outcome — accepted and fixed, pushed back, or needs clarification — with its reasoning.
+
 ## Step 1 — Establish context
 
 Run in parallel:
@@ -25,7 +27,7 @@ Run in parallel:
 - If reviewing a PR: `gh pr view <N> --json title,body,baseRefName,headRefName,url,reviews,comments` for full context.
 - Read `AGENTS.md`, `CLAUDE.md`, `.claude/CLAUDE.md`, lint configs — the project's coding standards. Same set `review-pr` reads.
 
-If the worktree has uncommitted changes from earlier work, **stop and ask** whether to address findings on top of them or whether the user wants to commit/stash first. Mixing in-progress work with review fixes makes `/make-commits` harder to split cleanly.
+If the worktree has uncommitted changes from earlier work, **stop and ask** whether to address findings on top of them or whether the user wants to commit/stash first. Mixing in-progress work with review fixes makes `/make-commits` harder to split cleanly. A caller that states it is addressing on top of existing uncommitted work has already answered this; proceed.
 
 ## Step 2 — Parse the findings
 
@@ -33,7 +35,7 @@ Convert the review into a numbered list of discrete findings. Each finding has:
 
 - A claim or request (what the reviewer wants).
 - Optionally a citation (`path:line`).
-- A severity if stated (`nit`, `suggestion`, `blocking`, `high`, `medium`, `low`).
+- A severity if stated (`nit`, `suggestion`, `blocking`, `material`, `optional`, `high`, `medium`, `low`).
 
 If the review is one long paragraph, **split it** into atomic items yourself. Don't lump multiple concerns into one finding — the per-finding reply structure depends on atomicity.
 
@@ -58,6 +60,7 @@ For each `Accept`:
 - Read the cited file(s) at the referenced lines to confirm the issue exists as described.
 - Make the minimal change that fixes the concern. Don't refactor surrounding code unless the reviewer explicitly asked.
 - After each fix, re-read the modified region to make sure the change is correct and complete.
+- Then run the **consequence sweep**: read every reference to each symbol, string, or path the fix renamed, moved, or changed — code, tests, docs, comments, log and error text — and update what it made stale; re-check any doc example it added or edited. The sweep is done when every reference has been read — an unswept fix seeds the next review round.
 
 Do **not** commit. The user will run `/make-commits` (or commit manually) after the draft is ready.
 
